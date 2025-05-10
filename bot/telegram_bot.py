@@ -1,4 +1,6 @@
 from telegram import Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import CallbackQueryHandler
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 from game.player import Player
 from game.game_engine import GameEngine
@@ -170,6 +172,54 @@ async def endday(update: Update, context: ContextTypes.DEFAULT_TYPE):
     phase_handler.set_phase("night")
     await update.message.reply_text(NIGHT_START)
 
+#buttons
+async def actionbuttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    player = player_list.get(user_id)
+
+    if not player:
+        await update.message.reply_text(NOT_IN_GAME)
+        return
+    
+    if not phase_handler.is_night():
+        await update.message.reply_text(NIGHT_ONLY_ACTION)
+        return
+    
+    if not hasattr(player.role, "night_action"):
+        await update.message.reply_text(NO_NIGHT_ACTION)
+        return
+    
+    keyboard = []
+    for p in player_list.values():
+        if p.alive and p.user_id != user_id:
+            keyboard.append([
+                InlineKeyboardButton(f"Target {p.usernmae}",callback_data=f"night_{user_id}_{p.user_id}")
+            ])
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text("🌙 Choose your target:", reply_markup=reply_markup)
+
+async def handle_night_action_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    data = query.data
+    if not data.startswith("night_"):
+        return
+    
+    actor_id, target_id = map(int, data.split("_")[1:])
+
+    actor = player_list.get(actor_id)
+    target = player_list.get(target_id)
+
+    if not actor or not actor.alive or not target or not target.alive:
+        await query.edit_message_text("Invalid action")
+        return
+    
+    actor.role.night_action(game_engine,actor,target)
+    await query.edit_message_text(f"✅ You targeted {target.username}.")
+    log(f"{actor.username} ({actor.role.name}) targeted {target.username}.")
+
+
 # Command Handlers
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("join", join))
@@ -178,3 +228,5 @@ app.add_handler(CommandHandler("action", action))
 app.add_handler(CommandHandler("endnight", endnight))
 app.add_handler(CommandHandler("vote", vote))
 app.add_handler(CommandHandler("endday", endday))
+app.add_handler(CommandHandler("actionbuttons", actionbuttons))
+app.add_handler(CallbackQueryHandler(handle_night_action_button))
