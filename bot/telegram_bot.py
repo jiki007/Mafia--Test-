@@ -18,6 +18,11 @@ import random
 app = ApplicationBuilder().token("7490724483:AAEy3khPwbQ_U0BQgS65gcn15TptOgRz-Nc").build()
 
 # Globals
+join_message_info = {
+    "chat_id":None,
+    "message_id":None
+
+}
 player_list = {}  # user_id: Player
 MAX_PLAYERS = 10
 
@@ -29,50 +34,55 @@ vote_manager = VoteManager()
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Hello! Welcome to Mafia Bot.")
 
-# /join
-async def join(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
+# /startgame
+async def startgame(update:Update, context: ContextTypes.DEFAULT_TYPE):
+    player_list.clear() #clears any previous session
+    chat_id = update.effective_chat.id
+
+    keyboard = [[InlineKeyboardButton("Join", callback_data="join_game")]]    
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    message = await context.bot.send_message(
+        chat_id = chat_id,
+        text = "Game starting ! Waiting for players.....\n\n Joined Players:\n(Epty)",
+        reply_markup=reply_markup
+    )
+
+    join_message_info["chat_id"] = message.chat_id
+    join_message_info["message_id"] = message.message_id
+    phase_handler.set_phase("lobby")
+
+
+#/join
+async def handle_join_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    user = query.from_user
     user_id = user.id
     username = user.username or user.full_name
 
     if user_id in player_list:
-        await update.message.reply_text(ALREADY_JOINED.format(username=username))
-    elif len(player_list) >= MAX_PLAYERS:
-        await update.message.reply_text(PLAYER_LIMIT)
-    else:
-        player = Player(user_id, username)
-        player_list[user_id] = player
-        await update.message.reply_text(JOIN_SUCCESS.format(username=username, count=len(player_list), max=MAX_PLAYERS))
-        log(f"{username} joined the game.")
-
-# /startgame
-async def startgame(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if len(player_list) < 5:
-        await update.message.reply_text("Need at least 5 players to start the game!")
+        await query.answer("You already joined.")
         return
+    if len(player_list) >= MAX_PLAYERS:
+        await query.answer("Player limit reached")
+        return
+    
+    player = Player(user_id, username)
+    player_list[user_id] = player
+    log(f"@{username} joined the game.")
 
-    players = list(player_list.values())
-    random.shuffle(players)
+    joined_names = "\n".join(f"• {p.username}" for p in player_list.values())
+    new_text = f"🎮 Game starting! Waiting for players...\n\n👥 Joined Players:\n{joined_names}"
 
-    players[0].assign_role(Mafia())
-    players[1].assign_role(Detective())
-    players[2].assign_role(Doctor())
-    for player in players[3:]:
-        player.assign_role(Civilian())
+    await context.bot.edit_message_text(
+        chat_id=join_message_info["chat_id"],
+        message_id=join_message_info["message_id"],
+        text=new_text,
+        reply_markup=query.message.reply_markup
+    )
 
-    for player in players:
-        try:
-            await context.bot.send_message(
-                chat_id=player.user_id,
-                text=ROLE_ANNOUNCEMENT.format(role=player.role.name, description=player.role.description())
-            )
-        except:
-            await update.message.reply_text(PRIVATE_MESSAGE_FAIL.format(username=player.username))
+    await query.answer("You joined the game.")
 
-    await update.message.reply_text(GAME_STARTED)
-    log("Game started and roles assigned.")
-    phase_handler.set_phase('night')
-    await update.message.reply_text(NIGHT_TIME)
 
 # /action
 async def action(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -226,7 +236,7 @@ async def handle_night_action_button(update: Update, context: ContextTypes.DEFAU
 
 # Command Handlers
 app.add_handler(CommandHandler("start", start))
-app.add_handler(CommandHandler("join", join))
+app.add_handler(CommandHandler("join", handle_join_button))
 app.add_handler(CommandHandler("startgame", startgame))
 app.add_handler(CommandHandler("action", action))
 app.add_handler(CommandHandler("endnight", endnight))
