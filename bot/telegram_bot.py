@@ -5,6 +5,9 @@ import random
 from game.game_engine import GameEngine
 from game.phase_handler import PhaseHandler
 from game.vote_manager import VoteManager
+from bot.message_templates import *
+from game.logger import log
+
 
 
 #Defining the bot
