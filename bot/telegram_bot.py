@@ -99,10 +99,30 @@ async def action(update:Update, context: ContextTypes.DEFAULT_TYPE):
     #Calling nihgt actions
     player.role.night_action(game_engine, player, target)
     await update.message.reply_text(f"You targeted {target.username}.")
+
+async def endnight(update:Update, context:ContextTypes.DEFAULT_TYPE):
+    if not phase_handler.is_night():
+        await update.message.reply_text("It is not night time!")
+        return
+
+    #End of the night
+    killed = game_engine.resolve_night()
+
+    message = ""
+    if killed:
+        message += f"Night is over.\n {killed} was killed during the previous night."
+    else:
+        message += "Night is over.\n No one died tonight!"
+    
+    #Setting phase to day
+    phase_handler.set_phase("day")
+
+    await update,message.reply_text(message)
     
 
 #Command Handlers
 app.add_handler(CommandHandler("start",start))
 app.add_handler(CommandHandler("join",join))
 app.add_handler(CommandHandler("action",action))
+app.add_handler(CommandHandler("endnight",endnight))
 
