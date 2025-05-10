@@ -8,6 +8,7 @@ GAME_STARTED = "Game has started! All roles have been assigned."
 NIGHT_END_KILL = "🌑 Night is over.\n💀 {name} was killed during the night."
 NIGHT_END_SAFE = "🌑 Night is over.\n🛡️ No one died tonight."
 NIGHT_START = "🌙 Night falls again... roles, take your actions."
+NIGHT_TIME = "🌑 It is night time."
 
 # ─── Day Messages ──────────────────────────────
 DAY_START = "🌞 It is now Day. Use /vote to vote out a suspect."

@@ -71,6 +71,8 @@ async def startgame(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(GAME_STARTED)
     log("Game started and roles assigned.")
+    phase_handler.set_phase('night')
+    await update.message.reply_text(NIGHT_TIME)
 
 # /action
 async def action(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -119,6 +121,34 @@ async def endnight(update: Update, context: ContextTypes.DEFAULT_TYPE):
     phase_handler.set_phase("day")
     await update.message.reply_text(DAY_START)
 
+
+# /endday
+async def endday(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not phase_handler.is_day():
+        await update.message.reply_text("It's not daytime!")
+        return
+
+    target_id = vote_manager.get_vote_result()
+    if not target_id:
+        await update.message.reply_text(NO_VOTES)
+    else:
+        target = player_list.get(target_id)
+        if target and target.alive:
+            target.eliminate()
+            await update.message.reply_text(VOTE_RESULT.format(name=target.username))
+            log(f"{target.username} was eliminated by vote.")
+        else:
+            await update.message.reply_text("The voted player was already dead or invalid.")
+
+    winner = game_engine.check_win_condition()
+    if winner:
+        await update.message.reply_text(WIN_MESSAGE.format(team=winner))
+        return
+
+    vote_manager.clear_votes()
+    phase_handler.set_phase("night")
+    await update.message.reply_text(NIGHT_START)
+
 # /vote
 async def vote(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not phase_handler.is_day():
@@ -145,32 +175,6 @@ async def vote(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(VOTE_CONFIRM.format(target=target.username))
     log(f"{voter.username} voted for {target.username}.")
 
-# /endday
-async def endday(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not phase_handler.is_day():
-        await update.message.reply_text(NOT_DAYTIME)
-        return
-
-    target_id = vote_manager.get_vote_result()
-    if not target_id:
-        await update.message.reply_text(NO_VOTES)
-    else:
-        target = player_list.get(target_id)
-        if target and target.alive:
-            target.eliminate()
-            await update.message.reply_text(VOTE_RESULT.format(name=target.username))
-            log(f"{target.username} was eliminated by vote.")
-        else:
-            await update.message.reply_text("The voted player was already dead or invalid.")
-
-    winner = game_engine.check_win_condition()
-    if winner:
-        await update.message.reply_text(WIN_MESSAGE.format(team=winner))
-        return
-
-    vote_manager.clear_votes()
-    phase_handler.set_phase("night")
-    await update.message.reply_text(NIGHT_START)
 
 #buttons
 async def actionbuttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
