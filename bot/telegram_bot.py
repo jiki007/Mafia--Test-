@@ -2,6 +2,9 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 from game.player import Player
 import random
+from game.game_engine import GameEngine
+from game.phase_handler import PhaseHandler
+
 
 #Defining the bot
 app = ApplicationBuilder().token("7490724483:AAEy3khPwbQ_U0BQgS65gcn15TptOgRz-Nc").build()
@@ -9,6 +12,10 @@ app = ApplicationBuilder().token("7490724483:AAEy3khPwbQ_U0BQgS65gcn15TptOgRz-Nc
 #List of players
 player_list = {} # key: user_id, value: Player object
 MAX_PLAYERS = 10
+
+#Global instances
+game_engine = GameEngine()
+phase_handler = PhaseHandler()
 
 #Roles
 ROLES = ['Mafia','Detective','Doctor']
@@ -61,8 +68,41 @@ async def startgame(update:Update, context:ContextTypes.DEFAULT_TYPE):
 
     await update.meesage.reply_text("Game has started! All roles have been assigned.")
 
+async def action(update:Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    player = player_list.get(user_id)
+
+    if not player:
+        await update.message.reply_text("You are not in the game.")
+        return
+    
+    if not phase_handler.is_night():
+        await update.message.reply_text("You can only act at night.")
+        return
+    if not hasattr(player.role, "night_action"):
+        await update.message.reply_text("You have no night action.")
+        return
+    
+    if not context.args:
+        await update.message.reply_text("Usage: /action <username>")
+        return
+    
+    target_name = context.args[0]
+    for p in player_list.values():
+        if p.username == target_name and p.alive:
+            target = p
+            break
+    
+    if not target:
+        await update.message.reply_text("Invalid or dead target.")
+
+    #Calling nihgt actions
+    player.role.night_action(game_engine, player, target)
+    await update.message.reply_text(f"You targeted {target.username}.")
+    
+
 #Command Handlers
 app.add_handler(CommandHandler("start",start))
 app.add_handler(CommandHandler("join",join))
-app.add_handler(CommandHandler("startgame",startgame))
+app.add_handler(CommandHandler("action",action))
 
