@@ -2,7 +2,7 @@ from collections import Counter
 
 class VoteManager:
     def __init__(self):
-        self,votes = {}
+        self.votes = {}
         
     def cast_vote(self,voter_id: int, target_id: int):
         self.votes[voter_id] = target_id

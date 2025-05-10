@@ -9,5 +9,5 @@ class Role(ABC):
         pass
 
     @abstractmethod
-    def desctiption(self):
+    def description(self):
         pass

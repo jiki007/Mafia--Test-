@@ -15,7 +15,7 @@ from game.logger import log
 import random
 
 # Bot setup
-app = ApplicationBuilder().token("YOUR_BOT_TOKEN").build()
+app = ApplicationBuilder().token("7490724483:AAEy3khPwbQ_U0BQgS65gcn15TptOgRz-Nc").build()
 
 # Globals
 player_list = {}  # user_id: Player
