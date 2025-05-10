@@ -4,6 +4,7 @@ from game.player import Player
 import random
 from game.game_engine import GameEngine
 from game.phase_handler import PhaseHandler
+from game.vote_manager import VoteManager
 
 
 #Defining the bot
@@ -16,6 +17,10 @@ MAX_PLAYERS = 10
 #Global instances
 game_engine = GameEngine()
 phase_handler = PhaseHandler()
+
+#Votes
+vote_manager = VoteManager()
+votes = {}
 
 #Roles
 ROLES = ['Mafia','Detective','Doctor']
@@ -100,29 +105,96 @@ async def action(update:Update, context: ContextTypes.DEFAULT_TYPE):
     player.role.night_action(game_engine, player, target)
     await update.message.reply_text(f"You targeted {target.username}.")
 
-async def endnight(update:Update, context:ContextTypes.DEFAULT_TYPE):
+async def endnight(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not phase_handler.is_night():
-        await update.message.reply_text("It is not night time!")
+        await update.message.reply_text("It's not night time!")
         return
 
-    #End of the night
     killed = game_engine.resolve_night()
 
     message = ""
     if killed:
-        message += f"Night is over.\n {killed} was killed during the previous night."
+        message += f"🌑 Night is over.\n💀 {killed} was killed during the night."
     else:
-        message += "Night is over.\n No one died tonight!"
-    
-    #Setting phase to day
-    phase_handler.set_phase("day")
+        message += "🌑 Night is over.\n No one died tonight!"
 
-    await update,message.reply_text(message)
+    await update.message.reply_text(message)
+
+    # WIN CONDITION CHECK
+    winner = game_engine.check_win_condition()
+    if winner:
+        await update.message.reply_text(f"🎉 {winner} wins the game!")
+        return
+
+    phase_handler.set_phase("day")
+    await update.message.reply_text("🌞 It is now Day. Use /vote to vote out a suspect.")
+
+
+async def vote(update:Update, context: ContextTypes.DEFAULT_TYPE):
+    if not phase_handler.is_day():
+        await update.message.reply_text("You can vote only during the day.")
+        return
     
+    voter = player_list.get(update.effective_user.id)
+
+    if not voter or not voter.alive:
+        await update.message.reply_text("You are not allowed to vote.")
+        return
+    
+    if not context.args:
+        await update.message.reply_text("Usage: /vote <usernaem>")
+        return
+    
+    target_name = context.args[0]
+    target = None
+    for p in player_list.values():
+        if p.username == target_name and p.alive:
+            target = p
+            break
+
+    if not target:
+        await update.message.reply_text("Invalid or dead player.")
+        return
+    
+    vote_manager.cast_vote(voter.user_id, target.user_id)
+    await update.message.reply_text(f"You voted for {target.username}.")
+
+
+async def endday(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not phase_handler.is_day():
+        await update.message.reply_text("It's not daytime!")
+        return
+
+    target_id = vote_manager.get_vote_result()
+
+    if not target_id:
+        await update.message.reply_text("No votes were cast. No one is eliminated.")
+    else:
+        target = player_list.get(target_id)
+        if target and target.alive:
+            target.eliminate()
+            await update.message.reply_text(f"🗳️ {target.username} was voted out and eliminated!")
+        else:
+            await update.message.reply_text("The voted player was already dead or invalid.")
+
+    # 🔍 WIN CONDITION CHECK
+    winner = game_engine.check_win_condition()
+    if winner:
+        await update.message.reply_text(f"🎉 {winner} wins the game!")
+        return
+
+    vote_manager.clear_votes()
+    phase_handler.set_phase("night")
+    await update.message.reply_text("🌙 Night falls again... roles, take your actions.")
+
+
+
 
 #Command Handlers
 app.add_handler(CommandHandler("start",start))
 app.add_handler(CommandHandler("join",join))
 app.add_handler(CommandHandler("action",action))
 app.add_handler(CommandHandler("endnight",endnight))
+app.add_handler(CommandHandler("vote",vote))
+app.add_handler(CommandHandler("endday",endday))
 

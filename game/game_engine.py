@@ -42,4 +42,16 @@ class GameEngine:
         self.save_queue.clear()
         return killed
 
+    def check_win_condition(self):
+        alive_players = [p for p in self.players if p.alive]
+        mafia = [p for p in alive_players if p.role.name == "Mafia"]
+        town = [p for p in alive_players if p.role.name != "Mafia"]
+
+        if not mafia:
+            return "Town"
+        elif len(mafia) >= len(town):
+            return "Mafia"
+        return None
+
+
 
