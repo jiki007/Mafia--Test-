@@ -49,7 +49,7 @@ async def startgame(update:Update, context: ContextTypes.DEFAULT_TYPE):
     
     join_message_info["chat_id"] = message.chat_id
     join_message_info["message_id"] = message.message_id
-    phase_handler.set_phase("lobby")
+    phase_handler.set_phase("night")
 
     #Background waiting for 40 secs before starting the game
     context.application.create_task(wait_and_start_game(chat_id,context))
@@ -57,7 +57,12 @@ async def startgame(update:Update, context: ContextTypes.DEFAULT_TYPE):
 #backgroudn waiting for 40 secs
 
 async def wait_and_start_game(chat_id, context:ContextTypes.DEFAULT_TYPE):
-    await asyncio.sleep(40)
+    await context.bot.send_message(chat_id=chat_id, text="40 seconds before game starts")
+    await asyncio.sleep(20)
+    await context.bot.send_message(chat_id=chat_id, text="20 seconds before game starts")
+    await asyncio.sleep(10)
+    await context.bot.send_message(chat_id=chat_id, text="10 seconds before game starts")
+    await asyncio.sleep(10)
 
     #Final list of all players who joined
     if player_list:
@@ -76,7 +81,7 @@ async def wait_and_start_game(chat_id, context:ContextTypes.DEFAULT_TYPE):
     except:
         pass
 
-    if len(player_list) < 5:
+    if len(player_list) < 4:
         await context.bot.send_message(chat_id=chat_id, text="Not enough players. Need at least 5 players to start a game!")
     else:
         await context.bot.send_message(chat_id=chat_id, text="Enough players joined! type /begin to start the game!")
@@ -138,7 +143,7 @@ async def handle_join_button(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 #/beging Here Game Starts
 async def begin(update:Update, context:ContextTypes.DEFAULT_TYPE):
-    if len(player_list) < 5:
+    if len(player_list) < 4:
         await update.message.reply_text("Nedd at least 5 players to start game")
         return
     
@@ -162,9 +167,48 @@ async def begin(update:Update, context:ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(GAME_STARTED)
     log("Game started and roles assigned.")
+
     phase_handler.set_phase("night")
     await update.message.reply_text(NIGHT_START)
+
+    #Sends buttons to all players who can act at night
+    for player in player_list.values():
+        if player.alive:
+            await send_night_action_buttons(context, player)
     
+
+#Sending actions privaately
+async def send_night_action_buttons(context,player):
+    if not hasattr(player.role, "night_action"):
+        return
+    
+    #Role specific action promt
+    if player.role.name == "Mafia":
+        promt = " Choose someone to KILL: "
+    elif player.role.name == "Doctor":
+        promt = "Choose someone to SAVE: "
+    elif player.role.name == "Detective":
+        promt = " Choose someone to INVESTIGATE "
+    else:
+        return
+
+    keyboard = []
+    for p in player_list.values():
+        if p.alive and p.user_id != player.user_id:
+            keyboard.append([
+                InlineKeyboardButton(f"Target {p.username}", callback_data=f"night_{player.user_id}_{p.user_id}")
+            ])
+
+    markup = InlineKeyboardMarkup(keyboard)
+
+    try:
+        await context.bot.send_message(
+            chat_id = player.user_id,
+            text = promt,
+            reply_markup = markup
+        )
+    except Exception as e:
+        log(f"❌ Could not send night action to {player.username}: {e}")
 
 # /action
 async def action(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -315,6 +359,7 @@ async def actionbuttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text("🌙 Choose your target:", reply_markup=reply_markup)
 
+#Handling night action buttons
 async def handle_night_action_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -329,7 +374,7 @@ async def handle_night_action_button(update: Update, context: ContextTypes.DEFAU
     target = player_list.get(target_id)
 
     if not actor or not actor.alive or not target or not target.alive:
-        await query.edit_message_text("Invalid action")
+        await query.edit_message_text("Invalid action or dead")
         return
     
     actor.role.night_action(game_engine,actor,target)
@@ -339,13 +384,16 @@ async def handle_night_action_button(update: Update, context: ContextTypes.DEFAU
 
 # Command Handlers
 app.add_handler(CommandHandler("start", start))
-app.add_handler(CallbackQueryHandler(handle_join_button, pattern="^join_game$"))
 app.add_handler(CommandHandler("startgame", startgame))
 app.add_handler(CommandHandler("action", action))
 app.add_handler(CommandHandler("endnight", endnight))
 app.add_handler(CommandHandler("vote", vote))
 app.add_handler(CommandHandler("endday", endday))
 app.add_handler(CommandHandler("actionbuttons", actionbuttons))
-app.add_handler(CallbackQueryHandler(handle_night_action_button))
 app.add_handler(CommandHandler("begin", begin))
+
+
+# Butto Handlers
+app.add_handler(CallbackQueryHandler(handle_join_button, pattern="^join_game$"))
+app.add_handler(CallbackQueryHandler(handle_night_action_button, pattern="night_"))
 
