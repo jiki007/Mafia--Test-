@@ -51,9 +51,7 @@ async def startgame(update:Update, context: ContextTypes.DEFAULT_TYPE):
     join_message_info["message_id"] = message.message_id
     phase_handler.set_phase("lobby")
 
-    #waiting for 40 seconds before starting the game
-    await asyncio.sleep(40)
-
+   
     #Final list of all players who joined
     if player_list:
         joined_names = "\n".join(f"@{p.username}" for p in player_list.values())
@@ -62,59 +60,59 @@ async def startgame(update:Update, context: ContextTypes.DEFAULT_TYPE):
             text=f"Players who joined: \n{joined_names}"
         )
 
-
-    #Deleting button and list after time is up 40secs
-
-    try:
-        await context.bot.delete_message(
-            chat_id=join_message_info['chat_id'],
-            message_id=join_message_info["message_id"]
-        )
-    except:
-        pass
-
-    if len(player_list) < 5:
-        await context.bot.send_message(chat_id=chat_id, text="Not enoguh players. Need at least 5 people to start!")
-    else:
-        await context.bot.send_message(chat_id=chat_id, text="✅ Enough players joined!\nUse /begin to start the game.")
-
-
 #/join
 async def handle_join_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    await query.answer()
-    user = query.from_user
-    user_id = user.id
-    username = user.username or user.full_name
-
     try:
+        # Immediately acknowledge the button press
+        await query.answer("Processing...")
+        
+        user = query.from_user
+        user_id = user.id
+        username = user.username or user.full_name
+        print(f"DEBUG: Join button pressed by {username} (ID: {user_id})")  # Debug log
+
+        # Check if user already joined
         if user_id in player_list:
-            await query.answer("You already joined.")
+            print(f"DEBUG: User {username} already in game")  # Debug log
+            await query.answer("You already joined!")
             return
+
+        # Check player limit
         if len(player_list) >= MAX_PLAYERS:
-            await query.answer("Player limit reached")
+            print("DEBUG: Player limit reached")  # Debug log
+            await query.answer("🚫 Player limit reached!")
             return
-    
+
+        # Add new player
         player = Player(user_id, username)
         player_list[user_id] = player
-        log(f"@{username} joined the game.")
+        print(f"DEBUG: Added {username} to player_list")  # Debug log
 
+        # Verify join_message_info is set
+        if not join_message_info.get("chat_id") or not join_message_info.get("message_id"):
+            print("ERROR: join_message_info not properly set!")
+            await query.answer("Game setup error. Please try again.")
+            return
+
+        # Update the join message
         joined_names = "\n".join(f"• {p.username}" for p in player_list.values())
         new_text = f"🎮 Game starting! Waiting for players...\n\n👥 Joined Players:\n{joined_names}"
-
+        
+        print(f"DEBUG: Attempting to edit message {join_message_info['message_id']}")  # Debug log
         await context.bot.edit_message_text(
-            chat_id = join_message_info["chat_id"],
-            message_id = join_message_info["message_id"],
-            text = new_text,
-            reply_markup = query.message.reply_markup
+            chat_id=join_message_info["chat_id"],
+            message_id=join_message_info["message_id"],
+            text=new_text,
+            reply_markup=query.message.reply_markup
         )
+        print("DEBUG: Message edited successfully")  # Debug log
 
-        await query.answer("You joined the game.")
-    
+        await query.answer(f"✅ {username} joined the game!")
+        
     except Exception as e:
-        print(f"[ERROR] Failed to procces join: {e}")
-        await query.answer("Something went wrong. Please try again!")
-
+        print(f"ERROR in handle_join_button: {str(e)}")  # Detailed error logging
+        await query.answer("❌ Failed to join. Please try again.")
 
 
 #/beging Here Game Starts
