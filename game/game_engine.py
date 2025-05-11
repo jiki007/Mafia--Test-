@@ -47,7 +47,9 @@ class GameEngine:
         mafia = [p for p in alive_players if p.role.name == "Mafia"]
         town = [p for p in alive_players if p.role.name != "Mafia"]
 
-        if not mafia:
+        if not town:
+            return "No one"
+        elif not mafia:
             return "Town"
         elif len(mafia) >= len(town):
             return "Mafia"
