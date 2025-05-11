@@ -380,16 +380,47 @@ async def handle_night_action_button(update: Update, context: ContextTypes.DEFAU
     await query.edit_message_text(f"✅ You targeted {target.username}.")
     log(f"{actor.username} ({actor.role.name}) targeted {target.username}.")
 
+#/endgame 
+async def endgame(update:Update, context:ContextTypes.DEFAULT_TYPE):
+    #No game avalialbe
+    if not player_list:
+        await update.message.reply_text("No game is currently in progress.")
+        return
+    
+    await update.message.reply_text("The game is ending immediately:")
+
+    winner = game_engine.check_win_condition()
+    if winner:
+        await update.message.reply_text(WIN_MESSAGE.format(team=winner))
+    else:
+        await update.message.reply_text("No winners!")
+
+    #Notifying all members
+    for player in player_list.values():
+        try:
+            await context.bot.send_message(
+                chat_id=player.user_id,
+                text="The game has ended! Thank you for playing."
+            )
+        except Exception as e:
+            log(f"Could not notify {player.username}: {e}")
+
+    player_list.clear()
+    phase_handler.set_phase(None)
+    vote_manager.clear_votes()
+
+    log("Game has been ended!")
+
 
 # Command Handlers
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("startgame", startgame))
 app.add_handler(CommandHandler("action", action))
+app.add_handler(CommandHandler("endgame", endgame))
 app.add_handler(CommandHandler("endnight", endnight))
 app.add_handler(CommandHandler("vote", vote))
 app.add_handler(CommandHandler("endday", endday))
 app.add_handler(CommandHandler("actionbuttons", actionbuttons))
-app.add_handler(CommandHandler("begin", begin))
 
 
 # Butto Handlers
