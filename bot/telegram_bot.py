@@ -51,7 +51,14 @@ async def startgame(update:Update, context: ContextTypes.DEFAULT_TYPE):
     join_message_info["message_id"] = message.message_id
     phase_handler.set_phase("lobby")
 
-   
+    #Background waiting for 40 secs before starting the game
+    context.application.create_task(wait_and_start_game(chat_id,context))
+
+#backgroudn waiting for 40 secs
+
+async def wait_and_start_game(chat_id, context:ContextTypes.DEFAULT_TYPE):
+    await asyncio.sleep(40)
+
     #Final list of all players who joined
     if player_list:
         joined_names = "\n".join(f"@{p.username}" for p in player_list.values())
@@ -59,6 +66,20 @@ async def startgame(update:Update, context: ContextTypes.DEFAULT_TYPE):
             chat_id=chat_id,
             text=f"Players who joined: \n{joined_names}"
         )
+
+    #Deleting the join message wiht the button
+    try:
+        await context.bot.delete_message(
+            chat_id=join_message_info["chat_id"],
+            message_id=join_message_info["message_id"]
+        )
+    except:
+        pass
+
+    if len(player_list) < 5:
+        await context.bot.send_message(chat_id=chat_id, text="Not enough players. Need at least 5 players to start a game!")
+    else:
+        await context.bot.send_message(chat_id=chat_id, text="Enough players joined! type /begin to start the game!")
 
 #/join
 async def handle_join_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
