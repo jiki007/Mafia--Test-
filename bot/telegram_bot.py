@@ -42,10 +42,11 @@ async def startgame(update:Update, context: ContextTypes.DEFAULT_TYPE):
 
     message = await context.bot.send_message(
         chat_id = chat_id,
-        text = "Game starting ! Waiting for players.....\n\n Joined Players:\n(Epty)",
+        text = "Game starting ! Waiting for players.....\n\n Joined Players:\n",
         reply_markup=reply_markup
     )
 
+    
     join_message_info["chat_id"] = message.chat_id
     join_message_info["message_id"] = message.message_id
     phase_handler.set_phase("lobby")
@@ -62,7 +63,7 @@ async def startgame(update:Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 
-    #Deleting button and list after time is up
+    #Deleting button and list after time is up 40secs
 
     try:
         await context.bot.delete_message(
@@ -81,32 +82,39 @@ async def startgame(update:Update, context: ContextTypes.DEFAULT_TYPE):
 #/join
 async def handle_join_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
+    await query.answer()
     user = query.from_user
     user_id = user.id
     username = user.username or user.full_name
 
-    if user_id in player_list:
-        await query.answer("You already joined.")
-        return
-    if len(player_list) >= MAX_PLAYERS:
-        await query.answer("Player limit reached")
-        return
+    try:
+        if user_id in player_list:
+            await query.answer("You already joined.")
+            return
+        if len(player_list) >= MAX_PLAYERS:
+            await query.answer("Player limit reached")
+            return
     
-    player = Player(user_id, username)
-    player_list[user_id] = player
-    log(f"@{username} joined the game.")
+        player = Player(user_id, username)
+        player_list[user_id] = player
+        log(f"@{username} joined the game.")
 
-    joined_names = "\n".join(f"• {p.username}" for p in player_list.values())
-    new_text = f"🎮 Game starting! Waiting for players...\n\n👥 Joined Players:\n{joined_names}"
+        joined_names = "\n".join(f"• {p.username}" for p in player_list.values())
+        new_text = f"🎮 Game starting! Waiting for players...\n\n👥 Joined Players:\n{joined_names}"
 
-    await context.bot.edit_message_text(
-        chat_id=join_message_info["chat_id"],
-        message_id=join_message_info["message_id"],
-        text=new_text,
-        reply_markup=query.message.reply_markup
-    )
+        await context.bot.edit_message_text(
+            chat_id = join_message_info["chat_id"],
+            message_id = join_message_info["message_id"],
+            text = new_text,
+            reply_markup = query.message.reply_markup
+        )
 
-    await query.answer("You joined the game.")
+        await query.answer("You joined the game.")
+    
+    except Exception as e:
+        print(f"[ERROR] Failed to procces join: {e}")
+        await query.answer("Something went wrong. Please try again!")
+
 
 
 #/beging Here Game Starts
