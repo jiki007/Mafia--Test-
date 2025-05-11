@@ -53,11 +53,20 @@ async def startgame(update:Update, context: ContextTypes.DEFAULT_TYPE):
     #waiting for 40 seconds before starting the game
     await asyncio.sleep(40)
 
+    #Final list of all players who joined
+    if player_list:
+        joined_names = "\n".join(f"@{p.username}" for p in player_list.values())
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=f"Players who joined: \n{joined_names}"
+        )
+
+
     #Deleting button and list after time is up
 
     try:
         await context.bot.delete_message(
-            chat_id==join_message_info['chat_id'],
+            chat_id=join_message_info['chat_id'],
             message_id=join_message_info["message_id"]
         )
     except:
@@ -169,11 +178,32 @@ async def endnight(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = NIGHT_END_KILL.format(name=killed) if killed else NIGHT_END_SAFE
     await update.message.reply_text(message)
 
+     #Counting remaining roles
+    mafia_count = sum(1 for p in player_list.values() if p.alive and p.role.name == "Mafia")
+    doctor_count = sum(1 for p in player_list.values() if p.alive and p.role.name == "Doctor")
+    detective_count = sum(1 for p in player_list.values() if p.alive and p.role.name == "Detective")
+    civilian_count = sum(1 for p in player_list.values() if p.alive and p.role.name == "Civilian")
+
+
+    #List as a message
+    status_message = (
+    "📊 Players Remaining:\n"
+    f"• 🕵️ Mafia: {mafia_count}\n"
+    f"• 🧑 Civilians: {civilian_count}\n"
+    f"• 🩺 Doctor: {doctor_count}\n"
+    f"• 🔍 Detective: {detective_count}"
+    )
+
+    await update.message.reply_text(status_message)
+  
+
     winner = game_engine.check_win_condition()
     if winner:
         await update.message.reply_text(WIN_MESSAGE.format(team=winner))
         return
-
+    
+   
+  
     phase_handler.set_phase("day")
     await update.message.reply_text(DAY_START)
 
@@ -253,7 +283,7 @@ async def actionbuttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for p in player_list.values():
         if p.alive and p.user_id != user_id:
             keyboard.append([
-                InlineKeyboardButton(f"Target {p.usernmae}",callback_data=f"night_{user_id}_{p.user_id}")
+                InlineKeyboardButton(f"Target {p.username}",callback_data=f"night_{user_id}_{p.user_id}")
             ])
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text("🌙 Choose your target:", reply_markup=reply_markup)
