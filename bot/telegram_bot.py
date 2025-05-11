@@ -1,7 +1,5 @@
-from telegram import Update
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import CallbackQueryHandler
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup,Update
+from telegram.ext import CallbackQueryHandler, ApplicationBuilder, CommandHandler, ContextTypes
 from game.player import Player
 from game.game_engine import GameEngine
 from game.phase_handler import PhaseHandler
@@ -12,7 +10,7 @@ from game.doctor import Doctor
 from game.civilian import Civilian
 from bot.message_templates import *
 from game.logger import log
-import random
+import random,asyncio
 
 # Bot setup
 app = ApplicationBuilder().token("7490724483:AAEy3khPwbQ_U0BQgS65gcn15TptOgRz-Nc").build()
@@ -52,6 +50,24 @@ async def startgame(update:Update, context: ContextTypes.DEFAULT_TYPE):
     join_message_info["message_id"] = message.message_id
     phase_handler.set_phase("lobby")
 
+    #waiting for 40 seconds before starting the game
+    await asyncio.sleep(40)
+
+    #Deleting button and list after time is up
+
+    try:
+        await context.bot.delete_message(
+            chat_id==join_message_info['chat_id'],
+            message_id=join_message_info["message_id"]
+        )
+    except:
+        pass
+
+    if len(player_list) < 5:
+        await context.bot.send_message(chat_id=chat_id, text="Not enoguh players. Need at least 5 people to start!")
+    else:
+        await context.bot.send_message(chat_id=chat_id, text="✅ Enough players joined!\nUse /begin to start the game.")
+
 
 #/join
 async def handle_join_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -83,6 +99,36 @@ async def handle_join_button(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     await query.answer("You joined the game.")
 
+
+#/beging Here Game Starts
+async def begin(update:Update, context:ContextTypes.DEFAULT_TYPE):
+    if len(player_list) < 5:
+        await update.message.reply_text("Nedd at least 5 players to start game")
+        return
+    
+    players = list(player_list.values())
+    random.shuffle(players)
+
+    players[0].assign_role(Mafia())
+    players[1].assign_role(Detective())
+    players[2].assign_role(Doctor())
+    for player in players[3:]:
+        player.assign_role(Civilian())
+
+    for player in players:
+        try:
+            await context.bot.send_message(
+                chat_id=player.user_id,
+                text=ROLE_ANNOUNCEMENT.format(role=player.role.name, description=player.role.description())
+            )
+        except:
+            await update.message.reply_text(PRIVATE_MESSAGE_FAIL.format(username=player.username))
+
+    await update.message.reply_text(GAME_STARTED)
+    log("Game started and roles assigned.")
+    phase_handler.set_phase("night")
+    await update.message.reply_text(NIGHT_START)
+    
 
 # /action
 async def action(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -236,7 +282,7 @@ async def handle_night_action_button(update: Update, context: ContextTypes.DEFAU
 
 # Command Handlers
 app.add_handler(CommandHandler("start", start))
-app.add_handler(CommandHandler("join", handle_join_button))
+app.add_handler(CallbackQueryHandler(handle_join_button, pattern="^join_game$"))
 app.add_handler(CommandHandler("startgame", startgame))
 app.add_handler(CommandHandler("action", action))
 app.add_handler(CommandHandler("endnight", endnight))
@@ -244,3 +290,5 @@ app.add_handler(CommandHandler("vote", vote))
 app.add_handler(CommandHandler("endday", endday))
 app.add_handler(CommandHandler("actionbuttons", actionbuttons))
 app.add_handler(CallbackQueryHandler(handle_night_action_button))
+app.add_handler(CommandHandler("begin", begin))
+
