@@ -21,8 +21,8 @@ class GameEngine:
         self.players[1].assign_role(Detective())
         self.players[2].assign_role(Doctor())
 
-        for plyrs in self.players[3:]:
-            plyrs.assign_roles(Civilian())
+        for p in self.players[3:]:
+            p.assign_roles(Civilian())
 
     def queue_kill(self,player):
         self.kill_queue.append(player)

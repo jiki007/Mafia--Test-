@@ -55,7 +55,6 @@ async def startgame(update:Update, context: ContextTypes.DEFAULT_TYPE):
     context.application.create_task(wait_and_start_game(chat_id,context))
 
 #backgroudn waiting for 40 secs
-
 async def wait_and_start_game(chat_id, context:ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=chat_id, text="40 seconds before game starts")
     await asyncio.sleep(20)
