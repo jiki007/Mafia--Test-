@@ -213,38 +213,50 @@ async def send_night_action_buttons(context,player):
     
 
 #/votebuttons
-async def votebuttons(update:Update, context:ContextTypes.DEFAULT_TYPE):
+async def votebuttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not phase_handler.is_day():
-        await update.message.reply_text(" Voting is allowed only during day time ")
+        await update.message.reply_text("⚠️ Voting is allowed only during day time.")
         return
     
     vote_manager.clear_votes()
+    
     voted_players.clear()
-
     for voter in game_engine.players:
         if not voter.alive:
             continue
 
-        print(f"[DEBUG] Sending vote buttons to: {voter.username} {{voter.user_id}}")
+        print(f"[DEBUG] Sending vote buttons to: {voter.username} ({voter.user_id})")
 
-    #Creating buttons for all alive players
-    keyboard = []
-    for target in player_list.values():
-        if target.alive and target.user_id != voter.user_id:
-            keyboard.append([
-                InlineKeyboardButton(f"{target.username}",callback_data=f"vote_{voter.user_id}_{target.user_id}")
-            ])
-    markup = InlineKeyboardMarkup(keyboard)
+        # ✅ Create a fresh keyboard for this voter
+        keyboard = []
+        for target in game_engine.players:
+            if target.alive and target.user_id != voter.user_id:
+                keyboard.append([
+                    InlineKeyboardButton(
+                        f"{target.username}",
+                        callback_data=f"vote_{voter.user_id}_{target.user_id}"
+                    )
+                ])
+        if not keyboard:
+            print(f"[DEBUG] No one to vote for: {voter.username}")
+            continue
 
-    try:
-        await context.bot.send_message(
-            chat_id=voter.user_id,
-            text="Choose someone to vote out:",
-            reply_markup=markup
-        )        
-    except:
-        log("Could not send vote to {voter.username}")
+        markup = InlineKeyboardMarkup(keyboard)
 
+        try:
+            await context.bot.send_message(
+                chat_id=voter.user_id,
+                text="🗳️ Choose someone to vote out:",
+                reply_markup=markup
+            )
+        except Exception as e:
+            log(f"❌ Could not send vote to {voter.username}: {e}")
+            await context.bot.send_message(
+                chat_id=join_message_info["chat_id"],
+                text=f"⚠️ Couldn't DM @{voter.username}. Maybe they haven't messaged the bot."
+            )
+
+    # ✅ Start vote timer once for all
     context.application.create_task(vote_timer(context))
 
 #vote_timer
