@@ -148,6 +148,7 @@ async def begin(update:Update, context:ContextTypes.DEFAULT_TYPE):
         return
     
     players = list(player_list.values())
+    game_engine.players = players
     random.shuffle(players)
 
     players[0].assign_role(Mafia())

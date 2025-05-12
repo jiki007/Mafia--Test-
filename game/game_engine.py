@@ -45,22 +45,28 @@ class GameEngine:
         self.investigated = None
 
     def resolve_night(self):
+        print(f"[DEBUG] resolve_night: night_kill={self.night_kill}, saved_user_id={self.saved_user_id}")
+
         #Killing or Saving procces
         killed_player = None
 
         if self.night_kill is not None:
             if self.night_kill != self.saved_user_id:
                 target = self.get_player_by_id(self.night_kill)
-                if target and target.alive:
-                    target.eliminate()
-                    killed_player = target
+                if target:
+                    print(f"[DEBUG]: Target to eliminate: {target.username}")
+                    if target and target.alive:
+                        target.eliminate()
+                        killed_player = target
+                else:
+                    print(f"[ERROR] No player found with ID {self.night_kill}")
+            else:
+                print("[DEBUG] Target was saved by doctor")
 
         killed_name = killed_player.username if killed_player else None
         investigation = self.investigated
 
-        self.night_kill = None
-        self.saved_user_id = None
-        self.investigated = None
+        self.reset_night_action()
 
         return killed_name,investigation
 

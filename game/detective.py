@@ -8,8 +8,9 @@ class Detective(Role):
         super().__init__("Detective")
 
     def night_action(self, game_engine, actor, target):
+        print(f"Detective ({actor.username}) investigates {target.username}")
         game_engine.queue_investigation(actor, target)
-        print(f"{actor.username} (Detective) is investigating {target.username}")
+
 
     def description(self):
         return "You are the Detective. Investigate one player each night."

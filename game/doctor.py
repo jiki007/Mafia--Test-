@@ -8,8 +8,8 @@ class Doctor(Role):
         super().__init__("Doctor")
 
     def night_action(self, game_engine, actor, target):
+        print(f"Doctor ({actor.username}) wants to save {target.username}")
         game_engine.queue_save(target)
-        print(f"{actor.username} (Doctor) is trying to save {target.username}")
 
     def description(self):
         return "You are the Doctor. Choose someone to save each night."
