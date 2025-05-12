@@ -81,7 +81,7 @@ async def wait_and_start_game(chat_id, context:ContextTypes.DEFAULT_TYPE):
     except:
         pass
 
-    if len(player_list) < 4:
+    if len(player_list) < 3:
         await context.bot.send_message(chat_id=chat_id, text="Not enough players. Need at least 5 players to start a game!")
     else:
         await context.bot.send_message(chat_id=chat_id, text="Enough players joined! type /begin to start the game!")
@@ -143,7 +143,7 @@ async def handle_join_button(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 #/beging Here Game Starts
 async def begin(update:Update, context:ContextTypes.DEFAULT_TYPE):
-    if len(player_list) < 4:
+    if len(player_list) < 3:
         await update.message.reply_text("Nedd at least 5 players to start game")
         return
     
@@ -336,7 +336,18 @@ async def handle_night_action_button(update:Update, context: ContextTypes.DEFAUL
     if not data.startswith("night_"):
         return
     
-    actor_id, target_id = map(int,data.split("_")[2:])
+    parts = data.split("_")
+    if len(parts) !=3:
+        await query.edit_message_text("Invalid button data") 
+        return
+    
+    try:
+        actor_id = int(parts[1])
+        target_id = int(parts[2])
+    except ValueError:
+        await query.edit_message_text("Invalid User's ID")
+        return
+    
     actor = player_list.get(actor_id)
     target = player_list.get(target_id)
 
