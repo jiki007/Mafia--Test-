@@ -16,6 +16,7 @@ import random,asyncio
 app = ApplicationBuilder().token("7490724483:AAEy3khPwbQ_U0BQgS65gcn15TptOgRz-Nc").build()
 
 # Globals
+night_task_running = False
 join_message_info = {
     "chat_id":None,
     "message_id":None
@@ -120,9 +121,23 @@ async def handle_join_button(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 
 #start night automaticaly
-async def start_night_phase(chat_id, context):
+async def start_night_phase(chat_id, context, delay_check = False):
+    global night_task_running
+
+    if night_task_running:
+        log("[DEBUG] Skipping duplicate phase (already rinning.)")
+        return
+
+    if delay_check:
+        await asyncio.sleep(0.1)
+
+    if not phase_handler.is_night():
+        log("[DEBUG] Phase is not night. Aborting night phase")
+        return
+    
+    night_task_running = True
+    log("[DEBUG] Starting night phase.")
  
-    phase_handler.set_phase("night")  # set only if not already
     await context.bot.send_message(chat_id=chat_id, text=NIGHT_START)
 
     for player in game_engine.players:
@@ -131,6 +146,7 @@ async def start_night_phase(chat_id, context):
 
     await asyncio.sleep(40)
     await end_night_phase(chat_id, context)
+    night_task_running = False
 
 
 #Sending actions privaately
@@ -395,7 +411,7 @@ async def begin_game(chat_id, context:ContextTypes.DEFAULT_TYPE):
     print("Game started and roles assigned.")
     
     # Start the first night phase
-    await start_night_phase(chat_id, context)
+    await start_night_phase(chat_id, context, delay_check=True)
 
 
 
