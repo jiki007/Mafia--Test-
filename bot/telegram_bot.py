@@ -208,6 +208,8 @@ async def send_night_action_buttons(context,player):
         )
     except Exception as e:
         log(f"❌ Could not send night action to {player.username}: {e}")
+    
+    
 
 # /endnight
 async def endnight(update: Update, context: ContextTypes.DEFAULT_TYPE):
