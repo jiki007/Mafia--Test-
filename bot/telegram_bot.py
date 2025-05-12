@@ -210,6 +210,28 @@ async def send_night_action_buttons(context,player):
         log(f"❌ Could not send night action to {player.username}: {e}")
     
     
+#Handling night acntion buttons
+async def handle_night_action_button(update:Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    data = query.data
+    if not data.startswith("night_"):
+        return
+    
+    actor_id, target_id = map(int,data.split("_")[2:])
+    actor = player_list.get(actor_id)
+    target = player_list.get(target_id)
+
+    if not actor or not actor.alive or not target or not target.alive:
+        await query.edit_message_text(" Invalid or dead target. ")
+        return
+    
+    if hasattr(actor.role, "night_action"):
+        actor.role.night_action(game_engine,actor,target)
+        await query.edit_message_text(f"You targeted: {target.username}.")
+    else:
+        await query.edit_message_text(f"You don't have a night action.")
 
 # /endnight
 async def endnight(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -217,9 +239,21 @@ async def endnight(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("It's not night time!")
         return
 
-    killed = game_engine.resolve_night()
-    message = NIGHT_END_KILL.format(name=killed) if killed else NIGHT_END_SAFE
+    killed_name, investigation = game_engine.resolve_night()
+
+    message = NIGHT_END_KILL.format(name=killed_name) if killed_name else NIGHT_END_SAFE
     await update.message.reply_text(message)
+
+    if investigation:
+        detective, target = investigation
+        is_mafia = target.role.name == 'Mafia'
+        try:
+            await context.bot.send_message(
+                chat_id=detective.user_id,
+                text=f"🔍 You investigated {target.username}.\nThey are {'🕵️ Mafia' if is_mafia else '✅ Not Mafia'}."
+            )
+        except Exception as e:
+             log(f"❌ Could not send investigation result to {detective.username}: {e}")
 
      #Counting remaining roles
     mafia_count = sum(1 for p in player_list.values() if p.alive and p.role.name == "Mafia")
@@ -314,4 +348,5 @@ app.add_handler(CommandHandler("endday", endday))
 
 # Butto Handlers
 app.add_handler(CallbackQueryHandler(handle_join_button, pattern="^join_game$"))
+app.add_handler(CallbackQueryHandler(handle_night_action_button, pattern="night_"))
 

@@ -1,6 +1,3 @@
-from player import Player
-
-
 class GameEngine:
     def __init__(self):
         self.players = []
