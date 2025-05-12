@@ -21,3 +21,4 @@ to choose a player.
 | 🏁 **Endgame (/endgame)**             | Announces winner or end, resets game state, notifies all players                       | ✅ Completed                    |
 | 🧱 **Modular OOP Structure**          | Roles, GameEngine, Player, VoteManager, Logger, etc. are all modular                   | ✅ Completed                    |
 | 🧪 **Basic Logging/Debug**            | Logs important steps & errors (for testing/debug)                                      | ✅ Completed                    |
+| 🗳 Voting Buttons (`/votebuttons`) | Let players vote by clicking on inline buttons      |

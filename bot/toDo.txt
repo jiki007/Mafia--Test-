@@ -1,6 +1,5 @@
 | Suggested Feature                  | Description                                         |
 | ---------------------------------- | --------------------------------------------------- |
-| 🗳 Voting Buttons (`/votebuttons`) | Let players vote by clicking on inline buttons      |
 | ⏱ Auto Phase Transitions           | Auto-end night/day after timer                      |
 | 📁 Persistent Logging              | Save logs to file or display via web UI             |
 | 🧙‍♂️ New Roles                    | Add optional roles: Mayor, Bodyguard, Serial Killer |
