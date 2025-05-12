@@ -7,7 +7,7 @@ class Mafia(Role):
     def __init__(self):
         super().__init__("Mafia")
 
-    def night_action(self, game, actor, target):
+    def night_action(self, game_engine, actor, target):
         game_engine.queue_kill = target.user_id
         print(f"{actor.username} (Mafia) wants to kill {target.username}")
 

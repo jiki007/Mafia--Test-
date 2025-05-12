@@ -28,13 +28,13 @@ class GameEngine:
         self.players[2].assign_role(Doctor())
 
         for p in self.players[3:]:
-            p.assign_roles(Civilian())
+            p.assign_role(Civilian())
 
     def queue_kill(self,player):
-        self.night_kill.append(player)
+        self.night_kill = player.user_id
 
     def queue_save(self,player):
-        self.saved_user_id.append(player)
+        self.saved_user_id = player.user_id
     
     def queue_investigation(self, detective, target):
         self.investigated = (detective, target)
