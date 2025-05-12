@@ -11,8 +11,6 @@ from game.civilian import Civilian
 from bot.message_templates import *
 from game.logger import log
 import random,asyncio
-from game.flow_controller import begin_game, start_day_phase
-
 
 # Bot setup
 app = ApplicationBuilder().token("7490724483:AAEy3khPwbQ_U0BQgS65gcn15TptOgRz-Nc").build()
@@ -92,58 +90,34 @@ async def wait_and_start_game(chat_id, context:ContextTypes.DEFAULT_TYPE):
 #/join
 async def handle_join_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    try:
-        # Immediately acknowledge the button press
-        await query.answer("Processing...")
-        
-        user = query.from_user
-        user_id = user.id
-        username = user.username or user.full_name
-        print(f"DEBUG: Join button pressed by {username} (ID: {user_id})")  # Debug log
+    user = query.from_user
+    user_id = user.id
+    username = user.username or user.full_name
 
-        # Check if user already joined
-        if user_id in player_list:
-            print(f"DEBUG: User {username} already in game")  # Debug log
-            await query.answer("You already joined!")
-            return
+    if user_id in player_list:
+        await query.answer("You already joined.")
+        return
 
-        # Check player limit
-        if len(player_list) >= MAX_PLAYERS:
-            print("DEBUG: Player limit reached")  # Debug log
-            await query.answer("🚫 Player limit reached!")
-            return
+    if len(player_list) >= MAX_PLAYERS:
+        await query.answer("Player limit reached.")
+        return
 
-        # Add new player
-        player = Player(user_id, username)
-        player_list[user_id] = player
-        print(f"DEBUG: Added {username} to player_list")  # Debug log
+    player = Player(user_id, username)
+    player_list[user_id] = player
+    log(f"{username} joined the game.")
 
-        # Verify join_message_info is set
-        if not join_message_info.get("chat_id") or not join_message_info.get("message_id"):
-            print("ERROR: join_message_info not properly set!")
-            await query.answer("Game setup error. Please try again.")
-            return
+    # Update the message
+    joined_names = "\n".join(f"• {p.username}" for p in player_list.values())
+    new_text = f"🎮 Game starting! Waiting for players...\n\n👥 Joined Players:\n{joined_names}"
 
-        # Update the join message
-        joined_names = "\n".join(f"• {p.username}" for p in game_engine.players)
-        new_text = f"🎮 Game starting! Waiting for players...\n\n👥 Joined Players:\n{joined_names}"
-        
-        print(f"DEBUG: Attempting to edit message {join_message_info['message_id']}")  # Debug log
-        await context.bot.edit_message_text(
-            chat_id=join_message_info["chat_id"],
-            message_id=join_message_info["message_id"],
-            text=new_text,
-            reply_markup=query.message.reply_markup
-        )
-        print("DEBUG: Message edited successfully")  # Debug log
+    await context.bot.edit_message_text(
+        chat_id=join_message_info["chat_id"],
+        message_id=join_message_info["message_id"],
+        text=new_text,
+        reply_markup=query.message.reply_markup
+    )
 
-        await query.answer(f"✅ {username} joined the game!")
-        
-    except Exception as e:
-        print(f"ERROR in handle_join_button: {str(e)}")  # Detailed error logging
-        await query.answer("❌ Failed to join. Please try again.")
-
-
+    await query.answer("You joined the game.")
 
 #start night automaticaly
 async def start_night_phase(chat_id, context):
@@ -393,6 +367,74 @@ async def endgame(update:Update, context:ContextTypes.DEFAULT_TYPE):
     vote_manager.clear_votes()
 
     log("Game has been ended!")
+
+
+#/beging Here Game Starts
+async def begin_game(chat_id, context:ContextTypes.DEFAULT_TYPE):
+    if len(player_list) < 3:
+        await context.bot.send_message(chat_id=chat_id, text="Not enough players 5 players need to start!")
+
+    players = list(player_list.values())
+    game_engine.players = players
+    random.shuffle(players)
+
+    # Assign roles
+    players[0].assign_role(Mafia())
+    players[1].assign_role(Detective())
+    players[2].assign_role(Doctor())
+    for player in players[3:]:
+        player.assign_role(Civilian())
+
+    for player in players:
+        try:
+            await context.bot.send_message(
+                chat_id=player.user_id,
+                text=ROLE_ANNOUNCEMENT.format(role=player.role.name, description=player.role.description())
+            )
+        except:
+            await context.bot.send_message(chat_id=chat_id, text=PRIVATE_MESSAGE_FAIL.format(username=player.username))
+
+    await context.bot.send_message(chat_id=chat_id, text=GAME_STARTED)
+    print("Game started and roles assigned.")
+    
+    # Start the first night phase
+    await start_night_phase(chat_id, context)
+
+
+
+
+#starting of day automaticaly
+async def start_day_phase(chat_id, context):
+    phase_handler.set_phase("day")
+    await context.bot.send_message(chat_id=chat_id, text=DAY_START)
+
+    vote_manager.clear_votes()
+    voted_players.clear()
+
+    for voter in game_engine.players:
+        if not voter.alive:
+            continue
+
+        keyboard = []
+        for target in game_engine.players:
+            if target.alive and target.user_id != voter.user_id:
+                keyboard.append([InlineKeyboardButton(f"{target.username}", callback_data=f"vote_{voter.user_id}_{target.user_id}")])
+
+        if not keyboard:
+            continue
+
+        try:
+            await context.bot.send_message(
+                chat_id=voter.user_id,
+                text="🗳️ Choose someone to vote out:",
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+        except Exception as e:
+            await context.bot.send_message(chat_id=chat_id, text=f"⚠️ Couldn't DM @{voter.username}")
+
+
+    await finish_voting(context)
+
 
 #Basic Commands
 app.add_handler(CommandHandler("start", start))
