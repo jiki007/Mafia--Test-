@@ -17,6 +17,7 @@ app = ApplicationBuilder().token("7490724483:AAEy3khPwbQ_U0BQgS65gcn15TptOgRz-Nc
 
 # Globals
 night_task_running = False
+voting_in_progress = False
 join_message_info = {
     "chat_id":None,
     "message_id":None
@@ -196,6 +197,9 @@ async def vote_timer(context):
         )
     await asyncio.sleep(10)
 
+    if voting_in_progress:
+        await finish_voting(context)
+
     # If not all voted, resolve with current votes
     alive_count = sum(1 for p in game_engine.players if p.alive)
     if len(voted_players) < alive_count:
@@ -235,10 +239,12 @@ async def handle_vote_button(update:Update, context:ContextTypes.DEFAULT_TYPE):
     
     alive_count = sum(1 for p in game_engine.players if p.alive)
     if len(voted_players) == alive_count:
+        voting_in_progress = False
         await finish_voting(context)
 
 #/finish_voting
 async def finish_voting(context:ContextTypes.DEFAULT_TYPE):
+    print("[DEBUG] Resolving votes...")
     chat_id = join_message_info['chat_id']
     vote_map = vote_manager.get_vote_map()
 
@@ -262,6 +268,8 @@ async def finish_voting(context:ContextTypes.DEFAULT_TYPE):
     if winner:
         await context.bot.send_message(chat_id=chat_id, text=WIN_MESSAGE.format(team=winner))
         return
+
+    phase_handler.set_phase("night")
 
     await start_night_phase(chat_id, context)
 
@@ -414,6 +422,9 @@ async def begin_game(chat_id, context:ContextTypes.DEFAULT_TYPE):
 
 #starting of day automaticaly
 async def start_day_phase(chat_id, context):
+    global voting_in_progress
+    voting_in_progress = True
+
     phase_handler.set_phase("day")
     await context.bot.send_message(chat_id=chat_id, text=DAY_START)
 
@@ -442,7 +453,7 @@ async def start_day_phase(chat_id, context):
             await context.bot.send_message(chat_id=chat_id, text=f"⚠️ Couldn't DM @{voter.username}")
 
 
-    await finish_voting(context)
+    context.application.create_task(vote_timer(context))
 
 
 #Basic Commands
