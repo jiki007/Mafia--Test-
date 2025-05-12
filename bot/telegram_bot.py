@@ -66,7 +66,7 @@ async def wait_and_start_game(chat_id, context:ContextTypes.DEFAULT_TYPE):
 
     #Final list of all players who joined
     if player_list:
-        joined_names = "\n".join(f"@{p.username}" for p in game_engine.players)
+        joined_names = "\n".join(f"@{p.username}" for p in player_list.values())
         await context.bot.send_message(
             chat_id=chat_id,
             text=f"Players who joined: \n{joined_names}"
@@ -106,7 +106,6 @@ async def handle_join_button(update: Update, context: ContextTypes.DEFAULT_TYPE)
     player_list[user_id] = player
     log(f"{username} joined the game.")
 
-    # Update the message
     joined_names = "\n".join(f"• {p.username}" for p in player_list.values())
     new_text = f"🎮 Game starting! Waiting for players...\n\n👥 Joined Players:\n{joined_names}"
 
@@ -119,9 +118,11 @@ async def handle_join_button(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     await query.answer("You joined the game.")
 
+
 #start night automaticaly
 async def start_night_phase(chat_id, context):
-    phase_handler.set_phase("night")
+ 
+    phase_handler.set_phase("night")  # set only if not already
     await context.bot.send_message(chat_id=chat_id, text=NIGHT_START)
 
     for player in game_engine.players:
@@ -240,10 +241,6 @@ async def finish_voting(context:ContextTypes.DEFAULT_TYPE):
         if target and target.alive:
             target.eliminate()
             await context.bot.send_message(chat_id=chat_id,text=f"@{target.username} was voted out.\n They were: {target.role.name}.")
-   
-    # Move to night
-    phase_handler.set_phase("night")
-    await context.bot.send_message(chat_id=chat_id, text=NIGHT_START)
 
     for player in game_engine.players:
         if player.alive and hasattr(player.role, "night_action"):
