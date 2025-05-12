@@ -258,10 +258,6 @@ async def finish_voting(context:ContextTypes.DEFAULT_TYPE):
             target.eliminate()
             await context.bot.send_message(chat_id=chat_id,text=f"@{target.username} was voted out.\n They were: {target.role.name}.")
 
-    for player in game_engine.players:
-        if player.alive and hasattr(player.role, "night_action"):
-            await send_night_action_buttons(context, player) 
-
     winner = game_engine.check_win_condition()
     if winner:
         await context.bot.send_message(chat_id=chat_id, text=WIN_MESSAGE.format(team=winner))
