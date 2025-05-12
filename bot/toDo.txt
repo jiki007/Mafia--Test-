@@ -1,0 +1,4 @@
+Need to manage killed, cured or investigated players.
+Voting mechanics
+Do no allowing players who died to text
+Creating a list of alive players and how many roles we have.

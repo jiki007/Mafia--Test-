@@ -1,0 +1,6 @@
+Now /startgame works almost perfectly.
+It sends join button and when new player joined, it is being lively edited.
+Every player gets their role in theri DM.
+Than night comes, every player who has roles get a private message, with buttons
+to choose a player.
+
