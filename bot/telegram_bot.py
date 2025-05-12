@@ -209,35 +209,6 @@ async def send_night_action_buttons(context,player):
     except Exception as e:
         log(f"❌ Could not send night action to {player.username}: {e}")
 
-# /action
-async def action(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    player = player_list.get(user_id)
-
-    if not player:
-        await update.message.reply_text(NOT_IN_GAME)
-        return
-    if not phase_handler.is_night():
-        await update.message.reply_text(NIGHT_ONLY_ACTION)
-        return
-    if not hasattr(player.role, "night_action"):
-        await update.message.reply_text(NO_NIGHT_ACTION)
-        return
-    if not context.args:
-        await update.message.reply_text(INVALID_ACTION_FORMAT)
-        return
-
-    target_name = context.args[0]
-    target = next((p for p in player_list.values() if p.username == target_name and p.alive), None)
-
-    if not target:
-        await update.message.reply_text(INVALID_TARGET)
-        return
-
-    player.role.night_action(game_engine, player, target)
-    await update.message.reply_text(f"You targeted {target.username}.")
-    log(f"{player.username} used action on {target.username}.")
-
 # /endnight
 async def endnight(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not phase_handler.is_night():
@@ -265,14 +236,6 @@ async def endnight(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     await update.message.reply_text(status_message)
-  
-
-    winner = game_engine.check_win_condition()
-    if winner:
-        await update.message.reply_text(WIN_MESSAGE.format(team=winner))
-        return
-    
-   
   
     phase_handler.set_phase("day")
     await update.message.reply_text(DAY_START)
@@ -305,80 +268,6 @@ async def endday(update: Update, context: ContextTypes.DEFAULT_TYPE):
     phase_handler.set_phase("night")
     await update.message.reply_text(NIGHT_START)
 
-# /vote
-async def vote(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not phase_handler.is_day():
-        await update.message.reply_text(NOT_DAYTIME)
-        return
-
-    voter = player_list.get(update.effective_user.id)
-    if not voter or not voter.alive:
-        await update.message.reply_text(NOT_ALLOWED_TO_VOTE)
-        return
-
-    if not context.args:
-        await update.message.reply_text(INVALID_VOTE_FORMAT)
-        return
-
-    target_name = context.args[0]
-    target = next((p for p in player_list.values() if p.username == target_name and p.alive), None)
-
-    if not target:
-        await update.message.reply_text(INVALID_TARGET)
-        return
-
-    vote_manager.cast_vote(voter.user_id, target.user_id)
-    await update.message.reply_text(VOTE_CONFIRM.format(target=target.username))
-    log(f"{voter.username} voted for {target.username}.")
-
-
-#buttons
-async def actionbuttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    player = player_list.get(user_id)
-
-    if not player:
-        await update.message.reply_text(NOT_IN_GAME)
-        return
-    
-    if not phase_handler.is_night():
-        await update.message.reply_text(NIGHT_ONLY_ACTION)
-        return
-    
-    if not hasattr(player.role, "night_action"):
-        await update.message.reply_text(NO_NIGHT_ACTION)
-        return
-    
-    keyboard = []
-    for p in player_list.values():
-        if p.alive and p.user_id != user_id:
-            keyboard.append([
-                InlineKeyboardButton(f"Target {p.username}",callback_data=f"night_{user_id}_{p.user_id}")
-            ])
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text("🌙 Choose your target:", reply_markup=reply_markup)
-
-#Handling night action buttons
-async def handle_night_action_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-
-    data = query.data
-    if not data.startswith("night_"):
-        return
-    
-    actor_id, target_id = map(int, data.split("_")[1:])
-
-    actor = player_list.get(actor_id)
-    target = player_list.get(target_id)
-
-    if not actor or not actor.alive or not target or not target.alive:
-        await query.edit_message_text("Invalid action or dead")
-        return
-    
-    actor.role.night_action(game_engine,actor,target)
-    await query.edit_message_text(f"✅ You targeted {target.username}.")
-    log(f"{actor.username} ({actor.role.name}) targeted {target.username}.")
 
 #/endgame 
 async def endgame(update:Update, context:ContextTypes.DEFAULT_TYPE):
@@ -415,15 +304,12 @@ async def endgame(update:Update, context:ContextTypes.DEFAULT_TYPE):
 # Command Handlers
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("startgame", startgame))
-app.add_handler(CommandHandler("action", action))
 app.add_handler(CommandHandler("endgame", endgame))
 app.add_handler(CommandHandler("endnight", endnight))
-app.add_handler(CommandHandler("vote", vote))
 app.add_handler(CommandHandler("endday", endday))
-app.add_handler(CommandHandler("actionbuttons", actionbuttons))
+
 
 
 # Butto Handlers
 app.add_handler(CallbackQueryHandler(handle_join_button, pattern="^join_game$"))
-app.add_handler(CallbackQueryHandler(handle_night_action_button, pattern="night_"))
 
