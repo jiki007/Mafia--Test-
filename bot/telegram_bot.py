@@ -221,9 +221,11 @@ async def votebuttons(update:Update, context:ContextTypes.DEFAULT_TYPE):
     vote_manager.clear_votes()
     voted_players.clear()
 
-    for voter in player_list.values():
+    for voter in game_engine.players:
         if not voter.alive:
             continue
+
+        print(f"[DEBUG] Sending vote buttons to: {voter.username} {{voter.user_id}}")
 
     #Creating buttons for all alive players
     keyboard = []
