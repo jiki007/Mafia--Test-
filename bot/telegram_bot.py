@@ -84,8 +84,9 @@ async def wait_and_start_game(chat_id, context:ContextTypes.DEFAULT_TYPE):
     if len(player_list) < 3:
         await context.bot.send_message(chat_id=chat_id, text="Not enough players. Need at least 5 players to start a game!")
     else:
-        await context.bot.send_message(chat_id=chat_id, text="Enough players joined! type /begin to start the game!")
-
+        await context.bot.send_message(chat_id=chat_id, text="Enough players joined!\n Starting the game....")
+        await begin_game(chat_id,context)
+        
 #/join
 async def handle_join_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -142,15 +143,12 @@ async def handle_join_button(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 
 #/beging Here Game Starts
-async def begin(update:Update, context:ContextTypes.DEFAULT_TYPE):
-    if len(player_list) < 3:
-        await update.message.reply_text("Nedd at least 5 players to start game")
-        return
-    
+async def begin_game(chat_id, context):
     players = list(player_list.values())
     game_engine.players = players
     random.shuffle(players)
 
+    # Assign roles
     players[0].assign_role(Mafia())
     players[1].assign_role(Detective())
     players[2].assign_role(Doctor())
@@ -164,19 +162,26 @@ async def begin(update:Update, context:ContextTypes.DEFAULT_TYPE):
                 text=ROLE_ANNOUNCEMENT.format(role=player.role.name, description=player.role.description())
             )
         except:
-            await update.message.reply_text(PRIVATE_MESSAGE_FAIL.format(username=player.username))
+            await context.bot.send_message(chat_id=chat_id, text=PRIVATE_MESSAGE_FAIL.format(username=player.username))
 
-    await update.message.reply_text(GAME_STARTED)
+    await context.bot.send_message(chat_id=chat_id, text=GAME_STARTED)
     log("Game started and roles assigned.")
-
-    phase_handler.set_phase("night")
-    await update.message.reply_text(NIGHT_START)
-
-    #Sends buttons to all players who can act at night
-    for player in player_list.values():
-        if player.alive:
-            await send_night_action_buttons(context, player)
     
+    # Start the first night phase
+    await start_night_phase(chat_id, context)
+
+#start night automaticaly
+async def start_night_phase(chat_id, context):
+    phase_handler.set_phase("night")
+    await context.bot.send_message(chat_id=chat_id, text=NIGHT_START)
+
+    for player in game_engine.players:
+        if player.alive and hasattr(player.role, "night_action"):
+            await send_night_action_buttons(context, player)
+
+    await asyncio.sleep(40)
+    await end_night_phase(chat_id, context)
+
 
 #Sending actions privaately
 async def send_night_action_buttons(context,player):
@@ -212,52 +217,37 @@ async def send_night_action_buttons(context,player):
         log(f"❌ Could not send night action to {player.username}: {e}")
     
 
-#/votebuttons
-async def votebuttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not phase_handler.is_day():
-        await update.message.reply_text("⚠️ Voting is allowed only during day time.")
-        return
-    
+#starting of day automaticaly
+async def start_day_phase(chat_id, context):
+    phase_handler.set_phase("day")
+    await context.bot.send_message(chat_id=chat_id, text=DAY_START)
+
     vote_manager.clear_votes()
-    
     voted_players.clear()
+
     for voter in game_engine.players:
         if not voter.alive:
             continue
 
-        print(f"[DEBUG] Sending vote buttons to: {voter.username} ({voter.user_id})")
-
-        # ✅ Create a fresh keyboard for this voter
         keyboard = []
         for target in game_engine.players:
             if target.alive and target.user_id != voter.user_id:
-                keyboard.append([
-                    InlineKeyboardButton(
-                        f"{target.username}",
-                        callback_data=f"vote_{voter.user_id}_{target.user_id}"
-                    )
-                ])
-        if not keyboard:
-            print(f"[DEBUG] No one to vote for: {voter.username}")
-            continue
+                keyboard.append([InlineKeyboardButton(f"{target.username}", callback_data=f"vote_{voter.user_id}_{target.user_id}")])
 
-        markup = InlineKeyboardMarkup(keyboard)
+        if not keyboard:
+            continue
 
         try:
             await context.bot.send_message(
                 chat_id=voter.user_id,
                 text="🗳️ Choose someone to vote out:",
-                reply_markup=markup
+                reply_markup=InlineKeyboardMarkup(keyboard)
             )
         except Exception as e:
-            log(f"❌ Could not send vote to {voter.username}: {e}")
-            await context.bot.send_message(
-                chat_id=join_message_info["chat_id"],
-                text=f"⚠️ Couldn't DM @{voter.username}. Maybe they haven't messaged the bot."
-            )
+            await context.bot.send_message(chat_id=chat_id, text=f"⚠️ Couldn't DM @{voter.username}")
 
-    # ✅ Start vote timer once for all
-    context.application.create_task(vote_timer(context))
+    await asyncio.sleep(40)
+    await finish_voting(context)
 
 #vote_timer
 async def vote_timer(context):
@@ -342,6 +332,14 @@ async def finish_voting(context:ContextTypes.DEFAULT_TYPE):
         if player.alive and hasattr(player.role, "night_action"):
             await send_night_action_buttons(context, player) 
 
+    winner = game_engine.check_win_condition()
+    if winner:
+        await context.bot.send_message(chat_id=chat_id, text=WIN_MESSAGE.format(team=winner))
+        return
+
+    await start_night_phase(chat_id, context)
+
+
 #Handling night acntion buttons
 async def handle_night_action_button(update:Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -377,15 +375,11 @@ async def handle_night_action_button(update:Update, context: ContextTypes.DEFAUL
         await query.edit_message_text(f"You don't have a night action.")
 
 # /endnight
-async def endnight(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not phase_handler.is_night():
-        await update.message.reply_text("It's not night time!")
-        return
-
+async def end_night_phase(chat_id, context):
     killed_name, investigation = game_engine.resolve_night()
 
     message = NIGHT_END_KILL.format(name=killed_name) if killed_name else NIGHT_END_SAFE
-    await update.message.reply_text(message)
+    await context.bot.send_message(chat_id=chat_id, text=message)
 
     if investigation:
         detective, target = investigation
@@ -393,31 +387,37 @@ async def endnight(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             await context.bot.send_message(
                 chat_id=detective.user_id,
-                text=f"🔍 You investigated {target.username}.\nThey are {'🕵️ Mafia' if is_mafia else '✅ Not Mafia'}."
+                text=f"🔍 You investigated {target.username}. They are {'🕵️ Mafia' if is_mafia else '✅ Not Mafia'}."
             )
         except Exception as e:
-             log(f"❌ Could not send investigation result to {detective.username}: {e}")
+            log(f"❌ Could not send investigation result to {detective.username}: {e}")
 
-     #Counting remaining roles
-    mafia_count = sum(1 for p in player_list.values() if p.alive and p.role.name == "Mafia")
-    doctor_count = sum(1 for p in player_list.values() if p.alive and p.role.name == "Doctor")
-    detective_count = sum(1 for p in player_list.values() if p.alive and p.role.name == "Detective")
-    civilian_count = sum(1 for p in player_list.values() if p.alive and p.role.name == "Civilian")
+    await show_remaining_roles(chat_id, context)
+
+    winner = game_engine.check_win_condition()
+    if winner:
+        await context.bot.send_message(chat_id=chat_id, text=WIN_MESSAGE.format(team=winner))
+        return
+
+    await start_day_phase(chat_id, context)
 
 
-    #List as a message
+#Remaing roles
+async def show_remaining_roles(chat_id, context):
+    mafia_count = sum(1 for p in game_engine.players if p.alive and p.role.name == "Mafia")
+    doctor_count = sum(1 for p in game_engine.players if p.alive and p.role.name == "Doctor")
+    detective_count = sum(1 for p in game_engine.players if p.alive and p.role.name == "Detective")
+    civilian_count = sum(1 for p in game_engine.players if p.alive and p.role.name == "Civilian")
+
     status_message = (
-    "📊 Players Remaining:\n"
-    f"• 🕵️ Mafia: {mafia_count}\n"
-    f"• 🧑 Civilians: {civilian_count}\n"
-    f"• 🩺 Doctor: {doctor_count}\n"
-    f"• 🔍 Detective: {detective_count}"
+        "📊 Players Remaining:\n"
+        f"• 🕵️ Mafia: {mafia_count}\n"
+        f"• 🧑 Civilians: {civilian_count}\n"
+        f"• 🩺 Doctor: {doctor_count}\n"
+        f"• 🔍 Detective: {detective_count}"
     )
 
-    await update.message.reply_text(status_message)
-  
-    phase_handler.set_phase("day")
-    await update.message.reply_text(DAY_START)
+    await context.bot.send_message(chat_id=chat_id, text=status_message)
 
 
 # /endday
@@ -479,20 +479,14 @@ async def endgame(update:Update, context:ContextTypes.DEFAULT_TYPE):
 
     log("Game has been ended!")
 
-
-# Command Handlers
+#Basic Commands
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("startgame", startgame))
-app.add_handler(CommandHandler("endgame", endgame))
-app.add_handler(CommandHandler("endnight", endnight))
-app.add_handler(CommandHandler("endday", endday))
-app.add_handler(CommandHandler("begin", begin))
-app.add_handler(CommandHandler("votebuttons", votebuttons))
+app.add_handler(CommandHandler("endgame", endgame))  # Optional emergency stop
 
-
-
-# Butto Handlers
+#Callback Buttons
 app.add_handler(CallbackQueryHandler(handle_join_button, pattern="^join_game$"))
-app.add_handler(CallbackQueryHandler(handle_night_action_button, pattern="night_"))
 app.add_handler(CallbackQueryHandler(handle_vote_button, pattern="^vote_"))
+app.add_handler(CallbackQueryHandler(handle_night_action_button, pattern="^night_"))
+
 
