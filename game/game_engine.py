@@ -68,7 +68,7 @@ class GameEngine:
 
         self.reset_night_action()
 
-        return killed_name,investigation
+        return killed_player,investigation
 
     def check_win_condition(self):
         alive_players = [p for p in self.players if p.alive]

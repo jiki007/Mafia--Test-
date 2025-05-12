@@ -264,6 +264,15 @@ async def finish_voting(context:ContextTypes.DEFAULT_TYPE):
             target.eliminate()
             await context.bot.send_message(chat_id=chat_id,text=f"@{target.username} was voted out.\n They were: {target.role.name}.")
 
+            try:
+                await context.bot.send_message(
+                    chat_id=target.user_id,
+                    text=f"You were elimintaed by vote. Your role was: {target.role.name}. Thanks for playing!"
+                )
+            except Exception as e:
+                log(f"Could not notify {target.username} of elimination: {e}")
+
+
     winner = game_engine.check_win_condition()
     if winner:
         await context.bot.send_message(chat_id=chat_id, text=WIN_MESSAGE.format(team=winner))
@@ -310,10 +319,18 @@ async def handle_night_action_button(update:Update, context: ContextTypes.DEFAUL
 
 # /endnight
 async def end_night_phase(chat_id, context):
-    killed_name, investigation = game_engine.resolve_night()
-
-    message = NIGHT_END_KILL.format(name=killed_name) if killed_name else NIGHT_END_SAFE
+    killed, investigation = game_engine.resolve_night()
+    message = NIGHT_END_KILL.format(name=killed) if killed else NIGHT_END_SAFE
     await context.bot.send_message(chat_id=chat_id, text=message)
+
+    if killed:
+        try:
+            await context.bot.send_message(
+                chat_id=killed.user_id,
+                text=f"💀 You were killed during the night. Your role was: {killed.role.name}. Thanks for playing!"
+            )
+        except Exception as e:
+            log(f"❌ Could not notify {killed.username} of night death: {e}")
 
     if investigation:
         detective, target = investigation
