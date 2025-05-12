@@ -1,4 +1,7 @@
-Need to manage killed, cured or investigated players.
-Voting mechanics
-Do no allowing players who died to text
-Creating a list of alive players and how many roles we have.
+| Suggested Feature                  | Description                                         |
+| ---------------------------------- | --------------------------------------------------- |
+| 🗳 Voting Buttons (`/votebuttons`) | Let players vote by clicking on inline buttons      |
+| ⏱ Auto Phase Transitions           | Auto-end night/day after timer                      |
+| 📁 Persistent Logging              | Save logs to file or display via web UI             |
+| 🧙‍♂️ New Roles                    | Add optional roles: Mayor, Bodyguard, Serial Killer |
+| 🌍 Multi-language Support          | Add translations (English, Korean, Uzbek, etc.)     |

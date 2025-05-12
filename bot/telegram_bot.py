@@ -22,6 +22,7 @@ join_message_info = {
 
 }
 player_list = {}  # user_id: Player
+voted_players = set()
 MAX_PLAYERS = 10
 
 game_engine = GameEngine()
@@ -195,7 +196,7 @@ async def send_night_action_buttons(context,player):
     for p in player_list.values():
         if p.alive and p.user_id != player.user_id:
             keyboard.append([
-                InlineKeyboardButton(f"Target {p.username}", callback_data=f"night_{player.user_id}_{p.user_id}")
+                InlineKeyboardButton(f"{p.username}", callback_data=f"night_{player.user_id}_{p.user_id}")
             ])
 
     markup = InlineKeyboardMarkup(keyboard)
@@ -209,7 +210,123 @@ async def send_night_action_buttons(context,player):
     except Exception as e:
         log(f"❌ Could not send night action to {player.username}: {e}")
     
+
+#/votebuttons
+async def votebuttons(update:Update, context:ContextTypes.DEFAULT_TYPE):
+    if not phase_handler.is_day():
+        await update.message.reply_text(" Voting is allowed only during day time ")
+        return
     
+    vote_manager.clear_votes()
+    voted_players.clear()
+
+    for voter in player_list.values():
+        if not voter.alive:
+            continue
+
+    #Creating buttons for all alive players
+    keyboard = []
+    for target in player_list.values():
+        if target.alive and target.user_id != voter.user_id:
+            keyboard.append([
+                InlineKeyboardButton(f"{target.username}",callback_data=f"vote_{voter.user_id}_{target.user_id}")
+            ])
+    markup = InlineKeyboardMarkup(keyboard)
+
+    try:
+        await context.bot.send_message(
+            chat_id=voter.user_id,
+            text="Choose someone to vote out:",
+            reply_markup=markup
+        )        
+    except:
+        log("Could not send vote to {voter.username}")
+
+    context.application.create_task(vote_timer(context))
+
+#vote_timer
+async def vote_timer(context):
+    await context.bot.send_message(
+            chat_id=join_message_info["chat_id"],
+            text="You have 40 seconds to vote"
+        )
+    await asyncio.sleep(30)
+    await context.bot.send_message(
+            chat_id=join_message_info["chat_id"],
+            text="You have 10 seconds to vote"
+        )
+    await asyncio.sleep(10)
+
+    # If not all voted, resolve with current votes
+    alive_count = sum(1 for p in player_list.values() if p.alive)
+    if len(voted_players) < alive_count:
+        await context.bot.send_message(
+            chat_id=join_message_info["chat_id"],
+            text="⏰ Voting time is over. Resolving votes..."
+        )
+        await finish_voting(context)
+
+
+
+
+#Handling vote button
+async def handle_vote_button(update:Update, context:ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    data = query.data
+
+    if not data.startswith("vote_"):
+        return
+    
+    voter_id, target_id = map(int,data.split("_")[1:])
+    voter = player_list.get(voter_id)
+    target = player_list.get(target_id)
+
+    if voter_id in voted_players:
+        await query.edit_message_text("You already voted.")
+        return
+    
+    if not voter or not voter.alive or not target or not target.alive:
+        await query.edit_message_text("Invalid vote.")
+        return
+    
+    vote_manager.cast_vote(voter_id, target_id)
+    voted_players.add(voter_id)
+    await query.edit_message_text("You voted for {target.username}.")
+    
+    alive_count = sum(1 for p in player_list.values() if p.alive)
+    if len(voted_players) == alive_count:
+        await finish_voting(context)
+
+#/finish_voting
+async def finish_voting(context:ContextTypes.DEFAULT_TYPE):
+    chat_id = join_message_info['chat_id']
+    vote_map = vote_manager.get_vote_map()
+
+    summary = "\n".join(f"@{player_list[v].username} voted for @{player_list[t].username}" for v,t in vote_map.items())
+
+    await context.bot.send_message(chat_id=chat_id, text="📊 Voting Summary:\n{summary}")
+
+    result = vote_manager.get_vote_result()
+    vote_manager.clear_votes()
+    voted_players.clear()
+
+    if result == "tie":
+        await context.bot.send_message(chat_id=chat_id, text="It's a tie nobody is eliminated.")
+    else:
+        target = player_list.get(result)
+        if target and target.alive:
+            target.eliminate()
+            await context.bot.send_message(chat_id=chat_id,text=f"@{target.username} was voted out.\n They were: {target.role.name}.")
+   
+    # Move to night
+    phase_handler.set_phase("night")
+    await context.bot.send_message(chat_id=chat_id, text=NIGHT_START)
+
+    for player in player_list.values():
+        if player.alive and hasattr(player.role, "night_action"):
+            await send_night_action_buttons(context, player) 
+
 #Handling night acntion buttons
 async def handle_night_action_button(update:Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -343,10 +460,13 @@ app.add_handler(CommandHandler("startgame", startgame))
 app.add_handler(CommandHandler("endgame", endgame))
 app.add_handler(CommandHandler("endnight", endnight))
 app.add_handler(CommandHandler("endday", endday))
+app.add_handler(CommandHandler("begin", begin))
+app.add_handler(CommandHandler("votebuttons", votebuttons))
 
 
 
 # Butto Handlers
 app.add_handler(CallbackQueryHandler(handle_join_button, pattern="^join_game$"))
 app.add_handler(CallbackQueryHandler(handle_night_action_button, pattern="night_"))
+app.add_handler(CallbackQueryHandler(handle_vote_button, pattern="^vote_"))
 

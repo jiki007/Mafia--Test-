@@ -4,3 +4,20 @@ Every player gets their role in theri DM.
 Than night comes, every player who has roles get a private message, with buttons
 to choose a player.
 
+
+| Feature                               | Description                                                                            | Status                         |
+| ------------------------------------- | -------------------------------------------------------------------------------------- | ------------------------------ |
+| 🟢 **/startgame Command**             | Sends "Join Game" button & collects players for 40 seconds                             | ✅ Completed                    |
+| 🔘 **Join Button**                    | Players can join by pressing a button; list updates in real-time                       | ✅ Completed                    |
+| 🎭 **Role Assignment (/begin)**       | Randomly assigns roles (Mafia, Doctor, Detective, Civilian) and sends private messages | ✅ Completed                    |
+| 🕵️‍♂️ **Role-Based Night Actions**   | Each role gets a private message with action buttons (kill/save/investigate)           | ✅ Completed                    |
+| 🌓 **Night Action Handling**          | Actions are queued in `GameEngine` and resolved properly                               | ✅ Completed                    |
+| 🌑 **Night Resolution (/endnight)**   | Determines who dies, sends group message, sends investigation result privately         | ✅ Completed                    |
+| 📊 **Role Count Update**              | After each night, bot announces how many of each role remain                           | ✅ Completed                    |
+| 🌞 **Day Phase**                      | Game shifts to day after night ends                                                    | ✅ Completed                    |
+| 🗳 **Vote Logic (Backend)**           | Voting system with `VoteManager` class to count votes, detect ties, etc.               | ✅ Completed                    |
+| ❌ **Voting Buttons UI**               | Voting buttons for each player (inline) during day phase                               | 🔄 In Progress (Not Yet Added) |
+| 💀 **Vote Result Handling (/endday)** | Kills voted player, announces in chat, checks for win condition                        | ✅ Completed                    |
+| 🏁 **Endgame (/endgame)**             | Announces winner or end, resets game state, notifies all players                       | ✅ Completed                    |
+| 🧱 **Modular OOP Structure**          | Roles, GameEngine, Player, VoteManager, Logger, etc. are all modular                   | ✅ Completed                    |
+| 🧪 **Basic Logging/Debug**            | Logs important steps & errors (for testing/debug)                                      | ✅ Completed                    |
