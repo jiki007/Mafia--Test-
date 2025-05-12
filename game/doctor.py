@@ -7,8 +7,8 @@ class Doctor(Role):
     def __init__(self):
         super().__init__("Doctor")
 
-    def night_action(self, game, actor, target):
-        game_engine.saved_user_id = target.user_id
+    def night_action(self, game_engine, actor, target):
+        game_engine.queue_save(target)
         print(f"{actor.username} (Doctor) is trying to save {target.username}")
 
     def description(self):
