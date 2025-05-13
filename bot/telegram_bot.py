@@ -186,16 +186,36 @@ async def send_night_action_buttons(context,player):
 
 #vote_timer
 async def vote_timer(context):
-    await context.bot.send_message(
+    chat_id = join_message_info['chat_id']
+
+    msg1 = await context.bot.send_message(
             chat_id=join_message_info["chat_id"],
-            text="You have 40 seconds to vote"
+            text="It is time to discuss and eliminate Mafias"
+            )
+
+    await asyncio.sleep(0.2)
+
+    msg2 = await context.bot.send_message(
+        chat_id=join_message_info["chat_id"],
+        text="You have 40 seconds to vote"
         )
+    
     await asyncio.sleep(30)
-    await context.bot.send_message(
-            chat_id=join_message_info["chat_id"],
-            text="You have 10 seconds to vote"
+
+    msg3 = await context.bot.send_message(
+        chat_id=join_message_info["chat_id"],
+        text="You have 10 seconds to vote"
         )
+    
     await asyncio.sleep(10)
+
+     # Delete all voting reminder messages
+    try:
+        await context.bot.delete_message(chat_id=chat_id, message_id=msg1.message_id)
+        await context.bot.delete_message(chat_id=chat_id, message_id=msg2.message_id)
+        await context.bot.delete_message(chat_id=chat_id, message_id=msg3.message_id)
+    except Exception as e:
+        log(f"[DEBUG] Failed to delete vote messages: {e}")
 
     if voting_in_progress:
         await finish_voting(context)
@@ -251,6 +271,8 @@ async def finish_voting(context:ContextTypes.DEFAULT_TYPE):
     summary = "\n".join(f"@{player_list[v].username} voted for @{player_list[t].username}" for v,t in vote_map.items())
 
     await context.bot.send_message(chat_id=chat_id, text=f"📊 Voting Summary:\n{summary}")
+
+    await context.bot.delete_message(chat_id=chat_id,message_id=summary)
 
     result = vote_manager.get_vote_result()
     vote_manager.clear_votes()
