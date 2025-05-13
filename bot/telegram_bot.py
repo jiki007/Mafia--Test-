@@ -275,7 +275,7 @@ async def finish_voting(context:ContextTypes.DEFAULT_TYPE):
 
     winner = game_engine.check_win_condition()
     if winner:
-        await context.bot.send_message(chat_id=chat_id, text=WIN_MESSAGE.format(team=winner))
+        await end_game(chat_id, context)
         return
 
     phase_handler.set_phase("night")
@@ -347,9 +347,8 @@ async def end_night_phase(chat_id, context):
 
     winner = game_engine.check_win_condition()
     if winner:
-        await context.bot.send_message(chat_id=chat_id, text=WIN_MESSAGE.format(team=winner))
+        await end_game(chat_id, context)
         return
-
     await start_day_phase(chat_id, context)
 
 
@@ -371,36 +370,42 @@ async def show_remaining_roles(chat_id, context):
     await context.bot.send_message(chat_id=chat_id, text=status_message)
 
 
-#/endgame 
-async def endgame(update:Update, context:ContextTypes.DEFAULT_TYPE):
-    #No game avalialbe
-    if not player_list:
-        await update.message.reply_text("No game is currently in progress.")
-        return
-    
-    await update.message.reply_text("The game is ending immediately:")
-
+#/endgame for finishing game
+async def end_game(chat_id, context):
     winner = game_engine.check_win_condition()
-    if winner:
-        await update.message.reply_text(WIN_MESSAGE.format(team=winner))
-    else:
-        await update.message.reply_text("No winners!")
 
-    #Notifying all members
+    if winner:
+        await context.bot.send_message(chat_id=chat_id, text=WIN_MESSAGE.format(team=winner))
+    else:
+        await context.bot.send_message(chat_id=chat_id, text="No winners.")
+
+    # Notify all players privately
     for player in game_engine.players:
         try:
             await context.bot.send_message(
                 chat_id=player.user_id,
-                text="The game has ended! Thank you for playing."
+                text="The game has ended! Thanks for playing."
             )
         except Exception as e:
             log(f"Could not notify {player.username}: {e}")
 
+    # Cleanup
     player_list.clear()
-    phase_handler.set_phase(None)
+    game_engine.players.clear()
     vote_manager.clear_votes()
+    phase_handler.set_phase(None)
+    log("[DEBUG] Game has been ended and cleaned up.")
 
-    log("Game has been ended!")
+
+#Public endgame 
+async def endgame(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not player_list:
+        await update.message.reply_text("No game is currently in progress.")
+        return
+
+    await update.message.reply_text("The game is ending...")
+    chat_id = update.effective_chat.id
+    await end_game(chat_id, context)
 
 
 #/beging Here Game Starts
