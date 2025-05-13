@@ -10,6 +10,7 @@ from game.doctor import Doctor
 from game.civilian import Civilian
 from bot.message_templates import *
 from game.logger import log
+from bot.utilities import generate_final_summary
 import random,asyncio
 
 # Bot setup
@@ -342,7 +343,7 @@ async def handle_night_action_button(update:Update, context: ContextTypes.DEFAUL
 # /endnight
 async def end_night_phase(chat_id, context):
     killed, investigation = game_engine.resolve_night()
-    message = NIGHT_END_KILL.format(name=killed) if killed else NIGHT_END_SAFE
+    message = NIGHT_END_KILL.format(name=killed.username) if killed else NIGHT_END_SAFE
     await context.bot.send_message(chat_id=chat_id, text=message)
 
     if killed:
@@ -411,12 +412,22 @@ async def end_game(chat_id, context):
         except Exception as e:
             log(f"Could not notify {player.username}: {e}")
 
+    
+    summary = generate_final_summary(game_engine.players, winner or "No one")
+
+    await context.bot.send_message(
+        chat_id=chat_id,
+        text=summary,
+        parse_mode="Markdown"
+    )
+
     # Cleanup
     player_list.clear()
     game_engine.players.clear()
     vote_manager.clear_votes()
     phase_handler.set_phase(None)
     log("[DEBUG] Game has been ended and cleaned up.")
+    
 
 
 #Public endgame 

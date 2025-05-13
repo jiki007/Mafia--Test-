@@ -5,7 +5,7 @@ ROLE_ANNOUNCEMENT = "Your role is: {role} 🤫🤫🤫\n\n{description}"
 GAME_STARTED = "Game has started! All roles have been assigned."
 
 # ─── Night Messages ────────────────────────────
-NIGHT_END_KILL = "🌑 Night is over.\n💀 {name} was killed during the night."
+NIGHT_END_KILL = "🌑 Night is over.\n💀 @{name} was killed during the night."
 NIGHT_END_SAFE = "🌑 Night is over.\n🛡️ No one died tonight."
 NIGHT_START = "🌙 Night falls again... roles, take your actions."
 NIGHT_TIME = "🌑 It is night time."

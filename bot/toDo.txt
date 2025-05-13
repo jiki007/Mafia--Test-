@@ -1,6 +1,3 @@
-| Suggested Feature                  | Description                                         |
-| ---------------------------------- | --------------------------------------------------- |
-| ⏱ Auto Phase Transitions           | Auto-end night/day after timer                      |
-| 📁 Persistent Logging              | Save logs to file or display via web UI             |
+| 📁 Persistent Logging              | Save logs to file .json           |
 | 🧙‍♂️ New Roles                    | Add optional roles: Mayor, Bodyguard, Serial Killer |
 | 🌍 Multi-language Support          | Add translations (English, Korean, Uzbek, etc.)     |

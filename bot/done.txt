@@ -22,3 +22,4 @@ to choose a player.
 | 🧱 **Modular OOP Structure**          | Roles, GameEngine, Player, VoteManager, Logger, etc. are all modular                   | ✅ Completed                    |
 | 🧪 **Basic Logging/Debug**            | Logs important steps & errors (for testing/debug)                                      | ✅ Completed                    |
 | 🗳 Voting Buttons (`/votebuttons`) | Let players vote by clicking on inline buttons      |
+| ⏱ Auto Phase Transitions           | Auto-end night/day after timer    
