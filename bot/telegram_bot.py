@@ -334,12 +334,22 @@ async def handle_night_action_button(update:Update, context: ContextTypes.DEFAUL
         await query.edit_message_text(" Invalid or dead target. ")
         return
     
+    
     if hasattr(actor.role, "night_action"):
         actor.role.night_action(game_engine,actor,target)
+        chat_id = join_message_info["chat_id"]
+        if actor.role.name == "Mafia":
+            await context.bot.send_message(chat_id=chat_id, text="🕵️ Mafia has selected a target.")
+        elif actor.role.name == "Doctor":
+            await context.bot.send_message(chat_id=chat_id, text="🩺 Doctor has chosen someone to protect.")
+        elif actor.role.name == "Detective":
+            await context.bot.send_message(chat_id=chat_id, text="🔍 Detective is investigating someone.")
+
         await query.edit_message_text(f"You targeted: {target.username}.")
     else:
         await query.edit_message_text(f"You don't have a night action.")
 
+    
 # /endnight
 async def end_night_phase(chat_id, context):
     killed, investigation = game_engine.resolve_night()
