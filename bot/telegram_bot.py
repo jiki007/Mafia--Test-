@@ -10,7 +10,7 @@ from game.doctor import Doctor
 from game.civilian import Civilian
 from bot.message_templates import *
 from game.logger import log
-from bot.utilities import generate_final_summary
+from bot.utilities import generate_final_summary, save_game_to_json
 import random,asyncio
 
 # Bot setup
@@ -173,7 +173,7 @@ async def send_night_action_buttons(context,player):
 
         if player.role.name != "Doctor" and p.user_id == player.user_id:
             continue
-        
+
         keyboard.append([
             InlineKeyboardButton(f"{p.username}", callback_data=f"night_{player.user_id}_{p.user_id}")
         ])
@@ -445,6 +445,8 @@ async def end_game(chat_id, context, winner=None):
             )
         except Exception as e:
             log(f"[DEBUG] Could not notify {player.username}: {e}")
+
+    save_game_to_json(game_engine.players, winner or "No one")
 
     player_list.clear()
     game_engine.players.clear()
