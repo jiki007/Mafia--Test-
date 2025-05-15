@@ -251,7 +251,7 @@ async def handle_vote_button(update:Update, context:ContextTypes.DEFAULT_TYPE):
         return
     
     chat_id = join_message_info["chat_id"]
-    await context.bot.send_message(chat_id=chat_id, text=f"@{voter.username} voted for @{target.name}")
+    await context.bot.send_message(chat_id=chat_id, text=f"@{voter.username} voted for @{target.username}")
     
     if not voter or not voter.alive or not target or not target.alive:
         await query.edit_message_text("Invalid vote.")
@@ -304,7 +304,7 @@ async def finish_voting(context:ContextTypes.DEFAULT_TYPE):
 
     winner = game_engine.check_win_condition()
     if winner:
-        await end_game(chat_id, context)
+        await end_game(chat_id, context, winner)
         return
 
     phase_handler.set_phase("night")
@@ -386,7 +386,7 @@ async def end_night_phase(chat_id, context):
 
     winner = game_engine.check_win_condition()
     if winner:
-        await end_game(chat_id, context)
+        await end_game(chat_id, context, winner)
         return
     await start_day_phase(chat_id, context)
 
@@ -410,40 +410,43 @@ async def show_remaining_roles(chat_id, context):
 
 
 #/endgame for finishing game
-async def end_game(chat_id, context):
-    winner = game_engine.check_win_condition()
+async def end_game(chat_id, context, winner=None):
+    if not winner:
+        winner = game_engine.check_win_condition()
 
     if winner:
-        await context.bot.send_message(chat_id=chat_id, text=WIN_MESSAGE.format(team=winner))
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=WIN_MESSAGE.format(team=winner)
+        )
     else:
-        await context.bot.send_message(chat_id=chat_id, text="No winners.")
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text="🎉 No one wins the game!"
+        )
 
-    # Notify all players privately
-    for player in game_engine.players:
-        try:
-            await context.bot.send_message(
-                chat_id=player.user_id,
-                text="The game has ended! Thanks for playing."
-            )
-        except Exception as e:
-            log(f"Could not notify {player.username}: {e}")
-
-    
     summary = generate_final_summary(game_engine.players, winner or "No one")
-
     await context.bot.send_message(
         chat_id=chat_id,
         text=summary,
         parse_mode="Markdown"
     )
 
-    # Cleanup
+    for player in game_engine.players:
+        try:
+            await context.bot.send_message(
+                chat_id=player.user_id,
+                text="📩 The game has ended! Thanks for playing."
+            )
+        except Exception as e:
+            log(f"[DEBUG] Could not notify {player.username}: {e}")
+
     player_list.clear()
     game_engine.players.clear()
     vote_manager.clear_votes()
     phase_handler.set_phase(None)
+
     log("[DEBUG] Game has been ended and cleaned up.")
-    
 
 
 #Public endgame 
