@@ -168,10 +168,15 @@ async def send_night_action_buttons(context,player):
 
     keyboard = []
     for p in game_engine.players:
-        if p.alive and p.user_id != player.user_id:
-            keyboard.append([
-                InlineKeyboardButton(f"{p.username}", callback_data=f"night_{player.user_id}_{p.user_id}")
-            ])
+        if not p.alive:
+            continue
+
+        if player.role.name != "Doctor" and p.user_id == player.user_id:
+            continue
+        
+        keyboard.append([
+            InlineKeyboardButton(f"{p.username}", callback_data=f"night_{player.user_id}_{p.user_id}")
+        ])
 
     markup = InlineKeyboardMarkup(keyboard)
 
