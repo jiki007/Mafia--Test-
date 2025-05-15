@@ -250,6 +250,9 @@ async def handle_vote_button(update:Update, context:ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text("You already voted.")
         return
     
+    chat_id = join_message_info["chat_id"]
+    await context.bot.send_message(chat_id=chat_id, text=f"@{voter.username} voted for @{target.name}")
+    
     if not voter or not voter.alive or not target or not target.alive:
         await query.edit_message_text("Invalid vote.")
         return
@@ -271,10 +274,13 @@ async def finish_voting(context:ContextTypes.DEFAULT_TYPE):
 
     summary = "\n".join(f"@{player_list[v].username} voted for @{player_list[t].username}" for v,t in vote_map.items())
 
-    await context.bot.send_message(chat_id=chat_id, text=f"📊 Voting Summary:\n{summary}")
+    summary_msg = await context.bot.send_message(chat_id=chat_id, text=f"📊 Voting Summary:\n{summary}")
 
-    await context.bot.delete_message(chat_id=chat_id,message_id=summary)
-
+    await asyncio.sleep(5)
+    try:
+        await context.bot.delete_message(chat_id=chat_id,message_id=summary_msg.message_id)
+    except Exception as e:
+        log(f"[DEBUG] Could not delete vote summary: {e}")
     result = vote_manager.get_vote_result()
     vote_manager.clear_votes()
     voted_players.clear()
