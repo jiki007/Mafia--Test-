@@ -446,7 +446,8 @@ async def end_game(chat_id, context, winner=None):
         except Exception as e:
             log(f"[DEBUG] Could not notify {player.username}: {e}")
 
-    save_game_to_json(game_engine.players, winner or "No one")
+    chat = await context.bot.get_chat(chat_id)
+    save_game_to_json(game_engine.players, winner or "No one", chat.title, chat.id)
 
     player_list.clear()
     game_engine.players.clear()

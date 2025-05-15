@@ -2,11 +2,16 @@ import json
 from datetime import datetime
 import os
 
-def save_game_to_json(players, winner, file_path="../data/game_data.json"):
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+FILE_PATH = os.path.join(BASE_DIR, "data", "game_data.json")
+
+def save_game_to_json(players, winner, chat_title, chat_id,file_path=FILE_PATH):
 
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
     data = {
+        "group_name":chat_title,
+        "group_id": chat_id,
         "winner":winner,
         "timestamp":datetime.now().isoformat(),
         "players": []
