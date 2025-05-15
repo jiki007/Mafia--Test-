@@ -3,6 +3,9 @@ from datetime import datetime
 import os
 
 def save_game_to_json(players, winner, file_path="../data/game_data.json"):
+
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
     data = {
         "winner":winner,
         "timestamp":datetime.now().isoformat(),
@@ -24,10 +27,10 @@ def save_game_to_json(players, winner, file_path="../data/game_data.json"):
                 games = []
             games.append(data)
             f.seek(0)
-            json.dump(games, f, indent=0)
+            json.dump(games, f, indent=4)
     else:
         with open(file_path, "w", encoding="utf-8") as f:
-            json.dump([data], f, indent=0)
+            json.dump([data], f, indent=4)
 
 def generate_final_summary(players, winning_team):
     role_emojis = {
