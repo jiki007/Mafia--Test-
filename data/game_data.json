@@ -21,5 +21,28 @@
                 "status": "Alive"
             }
         ]
+    },
+    {
+        "group_name": "Mafia Test ( Group )",
+        "group_id": -4796888196,
+        "winner": "Mafia",
+        "timestamp": "2025-05-19T15:43:45.984041",
+        "players": [
+            {
+                "username": "jiki07",
+                "role": "Mafia",
+                "status": "Alive"
+            },
+            {
+                "username": "kA_ma0_0",
+                "role": "Detective",
+                "status": "Alive"
+            },
+            {
+                "username": "asralkhanov",
+                "role": "Doctor",
+                "status": "Dead"
+            }
+        ]
     }
 ]

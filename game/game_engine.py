@@ -1,8 +1,10 @@
+from collections import Counter
+
 class GameEngine:
     def __init__(self):
         self.players = []
         self.phase = 'lobby'
-        self.night_kill = None
+        self.night_kill = []
         self.saved_user_id = None
         self.investigated = None
 
@@ -22,16 +24,27 @@ class GameEngine:
         from game.civilian import Civilian
         import random
 
+        total_players = len(self.players)
         random.shuffle(self.players)
-        self.players[0].assign_role(Mafia())
-        self.players[1].assign_role(Detective())
-        self.players[2].assign_role(Doctor())
 
-        for p in self.players[3:]:
-            p.assign_role(Civilian())
+        mafia_count = max(1, total_players // 4)
+
+        print(f"[DBUG] Assigning roles: {mafia_count} Mafia for {total_players} players.")
+
+        for i in range(mafia_count):
+            self.players[i].assign_role(Mafia())
+
+        if mafia_count < total_players:
+            self.players[mafia_count].assign_role(Detective())
+
+        if mafia_count + 1 < total_players:
+            self.players[mafia_count + 1].assign_role(Doctor())
+
+        for i in range(mafia_count + 2, total_players):
+            self.players[i].assign_role(Civilian())
 
     def queue_kill(self,player):
-        self.night_kill = player.user_id
+        self.night_kill.append(player.user_id)
 
     def queue_save(self,player):
         self.saved_user_id = player.user_id
@@ -40,7 +53,7 @@ class GameEngine:
         self.investigated = (detective, target)
 
     def reset_night_action(self):
-        self.night_kill = None
+        self.night_kill = []
         self.saved_user_id = None
         self.investigated = None
 
@@ -50,20 +63,20 @@ class GameEngine:
         #Killing or Saving procces
         killed_player = None
 
-        if self.night_kill is not None:
-            if self.night_kill != self.saved_user_id:
-                target = self.get_player_by_id(self.night_kill)
-                if target:
-                    print(f"[DEBUG]: Target to eliminate: {target.username}")
-                    if target and target.alive:
-                        target.eliminate()
-                        killed_player = target
-                else:
-                    print(f"[ERROR] No player found with ID {self.night_kill}")
-            else:
-                print("[DEBUG] Target was saved by doctor")
+        if self.night_kill:
+            vote_counts = Counter(self.night_kill)
+            most_common_id, count = vote_counts.most_common(1)[0]
 
-        killed_name = killed_player.username if killed_player else None
+            if most_common_id != self.saved_user_id:
+                target = self.get_player_by_id(most_common_id)
+                if target and target.alive:
+                    target.eliminate()
+                    killed_player = target
+            else:
+                print("[DEBUG] Doctro saved the Mafia target")
+        else:
+            print("[DEBUG] No mafia votes cast")
+
         investigation = self.investigated
 
         self.reset_night_action()
