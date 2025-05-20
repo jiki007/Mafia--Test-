@@ -44,5 +44,68 @@
                 "status": "Dead"
             }
         ]
+    },
+    {
+        "group_name": "Mafia Test ( Group )",
+        "group_id": -4796888196,
+        "winner": "Town",
+        "timestamp": "2025-05-20T23:00:24.881374",
+        "players": [
+            {
+                "username": "asralkhanov",
+                "role": "Mafia",
+                "status": "Dead"
+            },
+            {
+                "username": "jiki07",
+                "role": "Detective",
+                "status": "Alive"
+            },
+            {
+                "username": "kA_ma0_0",
+                "role": "Doctor",
+                "status": "Alive"
+            }
+        ]
+    },
+    {
+        "group_name": "Mafia Test ( Group )",
+        "group_id": -4796888196,
+        "winner": "Town",
+        "timestamp": "2025-05-20T23:04:06.233027",
+        "players": [
+            {
+                "username": "jiki07",
+                "role": "Mafia",
+                "status": "Dead"
+            },
+            {
+                "username": "asralkhanoff",
+                "role": "Detective",
+                "status": "Alive"
+            },
+            {
+                "username": "asralkhanov",
+                "role": "Doctor",
+                "status": "Alive"
+            },
+            {
+                "username": "kA_ma0_0",
+                "role": "Civilian",
+                "status": "Dead"
+            },
+            {
+                "username": "Hmmm544",
+                "role": "Civilian",
+                "status": "Alive"
+            }
+        ]
+    },
+    {
+        "group_name": "Mafia Test ( Group )",
+        "group_id": -4796888196,
+        "winner": "No one",
+        "timestamp": "2025-05-20T23:04:24.405323",
+        "players": []
     }
 ]
