@@ -55,7 +55,7 @@ python main.py
 ---
 
 ## 👥 How to Play
-
+IMPORTANT: Group should be created and bot should be added as an admin.
 1. A player starts the game with `/startgame`
 2. Others join via **Join button**
 3. After 40 seconds, the game auto-starts if 5+ players
