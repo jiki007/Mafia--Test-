@@ -41,6 +41,16 @@ async def startgame(update:Update, context: ContextTypes.DEFAULT_TYPE):
     player_list.clear() #clears any previous session
     chat_id = update.effective_chat.id
 
+    #Checking if bot is an admin or not
+    bot_member = await context.bot.get_chat_member(chat_id, context.bot.id)
+    if bot_member.status not in ['administrator', 'creator']:
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text="❗ I need to be an *admin* to start the game.\nPlease make me an admin and try again.",
+            parse_mode="Markdown"
+            )
+        return
+
     keyboard = [[InlineKeyboardButton("Join", callback_data="join_game")]]    
     reply_markup = InlineKeyboardMarkup(keyboard)
 
