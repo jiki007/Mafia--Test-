@@ -28,5 +28,28 @@
         "winner": "No one",
         "timestamp": "2025-05-26T17:20:46.629717",
         "players": []
+    },
+    {
+        "group_name": "Mafia Test ( Group )",
+        "group_id": -4796888196,
+        "winner": "Mafia",
+        "timestamp": "2025-06-01T19:50:36.045126",
+        "players": [
+            {
+                "username": "kA_ma0_0",
+                "role": "Mafia",
+                "status": "Alive"
+            },
+            {
+                "username": "asralkhanov",
+                "role": "Detective",
+                "status": "Dead"
+            },
+            {
+                "username": "jiki07",
+                "role": "Doctor",
+                "status": "Alive"
+            }
+        ]
     }
 ]
