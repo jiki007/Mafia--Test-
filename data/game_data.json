@@ -1,0 +1,32 @@
+[
+    {
+        "group_name": "Mafia Test ( Group )",
+        "group_id": -4796888196,
+        "winner": "Town",
+        "timestamp": "2025-05-26T17:20:27.666126",
+        "players": [
+            {
+                "username": "kA_ma0_0",
+                "role": "Mafia",
+                "status": "Dead"
+            },
+            {
+                "username": "asralkhanov",
+                "role": "Detective",
+                "status": "Alive"
+            },
+            {
+                "username": "jiki07",
+                "role": "Doctor",
+                "status": "Alive"
+            }
+        ]
+    },
+    {
+        "group_name": "Mafia Test ( Group )",
+        "group_id": -4796888196,
+        "winner": "No one",
+        "timestamp": "2025-05-26T17:20:46.629717",
+        "players": []
+    }
+]
