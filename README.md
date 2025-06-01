@@ -1,6 +1,6 @@
 # 🔗Links for bot and groupchat where we had tests. 
-https://t.me/InhaMafiaTestBot (Bot)
-https://t.me/+kdhhGBEqme0zYWU1 (Group)
+- https://t.me/InhaMafiaTestBot (Bot)
+- https://t.me/+kdhhGBEqme0zYWU1 (Group)
 
 
 # 🕵️‍♂️ Mafia Game Telegram Bot
