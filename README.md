@@ -2,6 +2,7 @@
 - https://t.me/InhaMafiaTestBot (Bot)
 - https://t.me/+kdhhGBEqme0zYWU1 (Group)
 
+---
 
 # 🕵️‍♂️ Mafia Game Telegram Bot
 
