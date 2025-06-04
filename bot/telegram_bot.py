@@ -14,7 +14,7 @@ from bot.utilities import generate_final_summary, save_game_to_json
 import random,asyncio
 
 # Bot setup
-app = ApplicationBuilder().token("7490724483:AAEy3khPwbQ_U0BQgS65gcn15TptOgRz-Nc").build()
+app = ApplicationBuilder().token("YOUR TOKEN").build()
 
 # Globals
 night_task_running = False
